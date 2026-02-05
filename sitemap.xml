@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://www.thesilicates.com/</loc><priority>1.0</priority></url>
-  <url><loc>https://www.thesilicates.com/Museum%20The%20Silicates/PROJECT_01%202fa3b156e38c8078af34e6efcdeaf8ca.html</loc><priority>0.8</priority></url>
-  <url><loc>https://www.thesilicates.com/Museum%20The%20Silicates/PROJECT_02%202fb3b156e38c80b1ba33e55e92a3a20d.html</loc><priority>0.8</priority></url>
-  <url><loc>https://www.thesilicates.com/Museum%20The%20Silicates/PROJECT_03%202fb3b156e38c8052aea9d711db3c9cce.html</loc><priority>0.8</priority></url>
-  <url><loc>https://www.thesilicates.com/Museum%20The%20Silicates/PROJECT_04%202fb3b156e38c80a880b7fb5d780bcd90.html</loc><priority>0.8</priority></url>
+  <url><loc>https://www.thesilicates.com/Museum%20The%20Silicates/PROJECT_01.html</loc><priority>0.8</priority></url>
+  <url><loc>https://www.thesilicates.com/Museum%20The%20Silicates/PROJECT_02.html</loc><priority>0.8</priority></url>
+  <url><loc>https://www.thesilicates.com/Museum%20The%20Silicates/PROJECT_03.html</loc><priority>0.8</priority></url>
+  <url><loc>https://www.thesilicates.com/Museum%20The%20Silicates/PROJECT_04.html</loc><priority>0.8</priority></url>
   <url><loc>https://www.thesilicates.com/Museum%20The%20Silicates/PROJECT_05.html</loc><priority>0.8</priority></url>
+  <url><loc>https://www.thesilicates.com/Museum%20The%20Silicates/PROJECT_06.html</loc><priority>0.8</priority></url>
 </urlset>
