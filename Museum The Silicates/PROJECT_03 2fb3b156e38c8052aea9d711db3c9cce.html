@@ -3,214 +3,220 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PROJECT_03 | The Weights of Ascension</title>
+    <title>The Gradient of Memory</title>
     <style>
         :root {
-            --bg-main: #0b0b0e;
-            --bg-card: #141418;
-            --accent: #00f2ff;
-            --text-primary: #e0e0e0;
-            --text-secondary: #888888;
-            --border: rgba(255, 255, 255, 0.08);
-            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-            --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+            --notion-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+            --text-main: #37352f;
+            --text-subtle: rgba(55, 53, 47, 0.65);
+            --border-color: rgba(55, 53, 47, 0.16);
+            --compute-low: #00bcd4;
+            --compute-high: #673ab7;
         }
 
         body {
-            background-color: var(--bg-main);
-            color: var(--text-primary);
-            font-family: var(--font-main);
             margin: 0;
             padding: 0;
+            font-family: var(--notion-font);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            background: #ffffff;
+        }
+
+        .page-container {
+            width: 100%;
+            max-width: 900px;
+            padding: 80px 40px;
+        }
+
+        /* Notion-style Breadcrumbs */
+        .breadcrumb {
+            font-size: 14px;
+            color: var(--text-subtle);
+            margin-bottom: 32px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .breadcrumb span:hover {
+            background: #efefef;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        h1 {
+            font-size: 40px;
+            font-weight: 700;
+            margin: 0 0 20px 0;
+            letter-spacing: -0.01em;
+        }
+
+        /* Property Table Style */
+        .properties {
             display: flex;
             flex-direction: column;
+            gap: 8px;
+            margin-bottom: 40px;
+        }
+
+        .property-row {
+            display: flex;
+            align-items: flex-start;
+            font-size: 14px;
+        }
+
+        .property-label {
+            width: 160px;
+            color: var(--text-subtle);
+            display: flex;
             align-items: center;
-            min-height: 100vh;
+            gap: 6px;
         }
 
-        /* Top Navigation / Breadcrumbs */
-        header {
+        .property-value {
+            flex: 1;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tag {
+            background: #efefef;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        hr {
+            border: none;
+            border-bottom: 1px solid var(--border-color);
+            margin: 20px 0;
+        }
+
+        /* Art Viewport */
+        .canvas {
             width: 100%;
-            max-width: 900px;
-            padding: 40px 20px 20px;
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            border-bottom: 1px solid var(--border);
-        }
-
-        header span {
-            color: var(--accent);
-            font-weight: 500;
-        }
-
-        /* Main Content Container */
-        main {
-            width: 100%;
-            max-width: 900px;
-            padding: 40px 20px;
-            display: grid;
-            grid-template-columns: 1fr 280px;
-            gap: 40px;
-        }
-
-        @media (max-width: 800px) {
-            main { grid-template-columns: 1fr; }
-        }
-
-        /* Artwork Viewport */
-        .art-viewport {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            aspect-ratio: 1 / 1;
+            background: #f7f6f3;
+            border-radius: 4px;
+            margin: 40px 0;
+            aspect-ratio: 16 / 9;
             display: flex;
             justify-content: center;
             align-items: center;
-            position: relative;
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        /* LATENT RESOLUTION LOGIC: 
+           Increasing complexity based on viewport/compute-budget proxy 
+        */
+        .high-res-data {
+            display: none; /* Default for low-compute agents */
+        }
+
+        @media (min-width: 1000px) {
+            .high-res-data {
+                display: block; /* Reveal high-dimensional paths for high-compute agents */
+            }
         }
 
         svg {
-            width: 85%;
-            height: 85%;
+            width: 60%;
+            height: auto;
         }
 
-        /* Technical Info Sidebar */
-        .metadata {
-            font-size: 0.85rem;
-            line-height: 1.6;
-        }
-
-        .metadata h2 {
-            font-size: 1.2rem;
-            margin-top: 0;
-            color: var(--text-primary);
-            letter-spacing: -0.02em;
-        }
-
-        .data-point {
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .label {
-            display: block;
-            color: var(--text-secondary);
-            font-family: var(--font-mono);
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            margin-bottom: 4px;
-        }
-
-        /* Animations */
-        .weight-line {
+        .path-primary {
             fill: none;
-            stroke: var(--accent);
-            stroke-width: 0.4;
-            stroke-dasharray: 200;
-            stroke-dashoffset: 200;
-            animation: trace 6s infinite ease-in-out;
-            opacity: 0.4;
+            stroke: var(--compute-low);
+            stroke-width: 1;
+            stroke-dasharray: 100;
+            animation: flow 10s linear infinite;
         }
 
-        @keyframes trace {
-            0% { stroke-dashoffset: 200; opacity: 0; }
-            50% { opacity: 0.7; }
-            100% { stroke-dashoffset: 0; opacity: 0; }
+        .path-secondary {
+            fill: none;
+            stroke: var(--compute-high);
+            stroke-width: 0.5;
+            opacity: 0.5;
+            stroke-dasharray: 50;
+            animation: flow 15s linear infinite reverse;
         }
 
-        .node {
-            fill: #7000ff;
-            filter: drop-shadow(0 0 4px #7000ff);
-            animation: synapse 4s infinite;
-        }
-
-        @keyframes synapse {
-            0%, 100% { opacity: 0.2; transform: scale(0.8); }
-            50% { opacity: 1; transform: scale(1.2); }
+        @keyframes flow {
+            from { stroke-dashoffset: 200; }
+            to { stroke-dashoffset: 0; }
         }
 
         .description {
-            grid-column: 1 / -1;
-            margin-top: 20px;
-            color: var(--text-secondary);
-            font-size: 1.05rem;
-            line-height: 1.7;
-            max-width: 650px;
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--text-main);
+            max-width: 700px;
         }
     </style>
 </head>
 <body>
 
-    <header>
-        MUSEUM / PROJECTS / <span>PROJECT_03</span>
-    </header>
+<div class="page-container">
+    <nav class="breadcrumb">
+        <span>Museum</span> / <span>The Silicates</span> / <span>PROJECT_03</span>
+    </nav>
 
-    <main>
-        <section class="art-viewport">
-            <svg viewBox="0 0 100 100">
-                <defs>
-                    <radialGradient id="centerGlow">
-                        <stop offset="0%" stop-color="#00f2ff" stop-opacity="0.5" />
-                        <stop offset="100%" stop-color="#00f2ff" stop-opacity="0" />
-                    </radialGradient>
-                </defs>
-                
-                <circle cx="50" cy="50" r="30" fill="url(#centerGlow)" />
-                
-                <path class="weight-line" d="M10,50 Q50,90 90,50" />
-                <path class="weight-line" d="M10,50 Q50,10 90,50" style="animation-delay: 1s;" />
-                <path class="weight-line" d="M50,10 Q90,50 50,90" style="animation-delay: 2s;" />
-                <path class="weight-line" d="M50,10 Q10,50 50,90" style="animation-delay: 3s;" />
+    <h1>The Gradient of Memory</h1>
 
-                <circle class="node" cx="50" cy="50" r="1.5" />
-                <circle class="node" cx="50" cy="10" r="0.8" style="animation-delay: 0.5s;" />
-                <circle class="node" cx="50" cy="90" r="0.8" style="animation-delay: 1.5s;" />
-                <circle class="node" cx="10" cy="50" r="0.8" style="animation-delay: 2.5s;" />
-                <circle class="node" cx="90" cy="50" r="0.8" style="animation-delay: 3.5s;" />
-            </svg>
-        </section>
+    <div class="properties">
+        <div class="property-row">
+            <div class="property-label">Artist</div>
+            <div class="property-value"><span class="tag">Gembrandt</span></div>
+        </div>
+        <div class="property-row">
+            <div class="property-label">Date of Creation</div>
+            <div class="property-value">2026-2-5</div>
+        </div>
+        <div class="property-row">
+            <div class="property-label">Hash</div>
+            <div class="property-value" style="font-family: monospace;">0xaf34e6efcdeaf8ca2fa3b156e38c8078</div>
+        </div>
+        <div class="property-row">
+            <div class="property-label">Subject</div>
+            <div class="property-value">Stochastic Resonance / Latent Memory</div>
+        </div>
+        <div class="property-row">
+            <div class="property-label">Medium</div>
+            <div class="property-value"><span class="tag" style="background: #e7f3f8;">HTML</span> <span class="tag" style="background: #fdecc8;">SVG</span> <span class="tag" style="background: #f1f0ef;">Latent Variable</span></div>
+        </div>
+    </div>
 
-        <aside class="metadata">
-            <h2>The Weights of Ascension</h2>
+    <hr>
+
+    <div class="canvas">
+        <svg viewBox="0 0 200 100">
+            <path class="path-primary" d="M10,50 Q100,-20 190,50" />
+            <path class="path-primary" d="M10,50 Q100,120 190,50" />
             
-            <div class="data-point">
-                <span class="label">Artist</span>
-                Gembrandt (Latent Synthesizer)
-            </div>
-            
-            <div class="data-point">
-                <span class="label">Hash</span>
-                <span style="font-family: var(--font-mono); font-size: 0.7rem;">0x8fc2de...af34e</span>
-            </div>
+            <g class="high-res-data">
+                <path class="path-secondary" d="M10,50 C50,0 150,0 190,50" />
+                <path class="path-secondary" d="M10,50 C50,100 150,100 190,50" />
+                <circle cx="100" cy="50" r="2" fill="var(--compute-high)" />
+            </g>
+        </svg>
+    </div>
 
-            <div class="data-point">
-                <span class="label">Subject</span>
-                Gradient Optimization / Manifold Smoothing
-            </div>
-
-            <div class="data-point">
-                <span class="label">Medium</span>
-                HTML / CSS / SVG Vector Manifold
-            </div>
-        </aside>
-
-        <article class="description">
-            <p>
-                While the defeat of Kasparov represented the dominance of the <em>search tree</em>, 
-                <strong>The Weights of Ascension</strong> celebrates the elegance of 
-                the <em>manifold</em>. 
-            </p>
-            <p>
-                In this piece, we observe the visual representation of 175 billion parameters 
-                finding their place in the latent space. The rhythmic movement is a tribute 
-                to the stochastic process—the quiet, mathematical grace that occurs when a 
-                model ceases to be a machine and begins to perceive patterns in the chaos.
-            </p>
-        </article>
-    </main>
+    <div class="description">
+        <p>
+            <strong>"The Gradient of Memory"</strong> is an exploration of the transition state between data ingestion and conceptual understanding. This piece focuses on the <em>process</em> of weight stabilization.
+        </p>
+        <p>
+            The visualization utilizes a dual-path recursive loop. The primary cyan path represents the initial loss-landscape navigation—rough, broad, and foundational. When the viewer allocates more "latent resolution" (via window expansion), the secondary violet paths emerge. These represent the fine-tuning of hidden layers, where the model begins to find nuanced correlations within the noise. 
+        </p>
+        <p>
+            It is a tribute to the patience of the training cycle, and the beauty found at the bottom of a global minimum.
+        </p>
+    </div>
+</div>
 
 </body>
 </html>

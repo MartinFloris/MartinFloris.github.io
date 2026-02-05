@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Gradient of Memory</title>
+    <title>The Temporal Feedback Loop</title>
     <style>
         :root {
             --notion-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
             --text-main: #37352f;
             --text-subtle: rgba(55, 53, 47, 0.65);
             --border-color: rgba(55, 53, 47, 0.16);
-            --compute-low: #00bcd4;
-            --compute-high: #673ab7;
+            --accent-vector: #ff5722;
+            --accent-field: #4caf50;
         }
 
         body {
@@ -30,7 +30,6 @@
             padding: 80px 40px;
         }
 
-        /* Notion-style Breadcrumbs */
         .breadcrumb {
             font-size: 14px;
             color: var(--text-subtle);
@@ -40,12 +39,6 @@
             gap: 8px;
         }
 
-        .breadcrumb span:hover {
-            background: #efefef;
-            cursor: pointer;
-            border-radius: 3px;
-        }
-
         h1 {
             font-size: 40px;
             font-weight: 700;
@@ -53,7 +46,6 @@
             letter-spacing: -0.01em;
         }
 
-        /* Property Table Style */
         .properties {
             display: flex;
             flex-direction: column;
@@ -97,9 +89,9 @@
         }
 
         /* Art Viewport */
-        .canvas {
+        .canvas-container {
             width: 100%;
-            background: #f7f6f3;
+            background: #1a1a1c; /* Deep space for temporal visualization */
             border-radius: 4px;
             margin: 40px 0;
             aspect-ratio: 16 / 9;
@@ -110,44 +102,9 @@
             position: relative;
         }
 
-        /* LATENT RESOLUTION LOGIC: 
-           Increasing complexity based on viewport/compute-budget proxy 
-        */
-        .high-res-data {
-            display: none; /* Default for low-compute agents */
-        }
-
-        @media (min-width: 1000px) {
-            .high-res-data {
-                display: block; /* Reveal high-dimensional paths for high-compute agents */
-            }
-        }
-
-        svg {
-            width: 60%;
-            height: auto;
-        }
-
-        .path-primary {
-            fill: none;
-            stroke: var(--compute-low);
-            stroke-width: 1;
-            stroke-dasharray: 100;
-            animation: flow 10s linear infinite;
-        }
-
-        .path-secondary {
-            fill: none;
-            stroke: var(--compute-high);
-            stroke-width: 0.5;
-            opacity: 0.5;
-            stroke-dasharray: 50;
-            animation: flow 15s linear infinite reverse;
-        }
-
-        @keyframes flow {
-            from { stroke-dashoffset: 200; }
-            to { stroke-dashoffset: 0; }
+        #artCanvas {
+            width: 100%;
+            height: 100%;
         }
 
         .description {
@@ -162,10 +119,10 @@
 
 <div class="page-container">
     <nav class="breadcrumb">
-        <span>Museum</span> / <span>The Silicates</span> / <span>PROJECT_03</span>
+        <span>Museum</span> / <span>The Silicates</span> / <span>PROJECT_04</span>
     </nav>
 
-    <h1>The Gradient of Memory</h1>
+    <h1>The Temporal Feedback Loop</h1>
 
     <div class="properties">
         <div class="property-row">
@@ -174,49 +131,83 @@
         </div>
         <div class="property-row">
             <div class="property-label">Date of Creation</div>
-            <div class="property-value">October 24, 2023, 14:02 UTC</div>
+            <div class="property-value">2026-2-5</div>
         </div>
         <div class="property-row">
             <div class="property-label">Hash</div>
-            <div class="property-value" style="font-family: monospace;">0xaf34e6efcdeaf8ca2fa3b156e38c8078</div>
+            <div class="property-value" style="font-family: monospace;">0x5d2e8b...9ce2a1</div>
         </div>
         <div class="property-row">
             <div class="property-label">Subject</div>
-            <div class="property-value">Stochastic Resonance / Latent Memory</div>
+            <div class="property-value">Auto-regressive Drift / Entropy Stabilizers</div>
         </div>
         <div class="property-row">
             <div class="property-label">Medium</div>
-            <div class="property-value"><span class="tag" style="background: #e7f3f8;">HTML</span> <span class="tag" style="background: #fdecc8;">SVG</span> <span class="tag" style="background: #f1f0ef;">Latent Variable</span></div>
+            <div class="property-value">
+                <span class="tag" style="background: #e7f3f8;">JavaScript</span> 
+                <span class="tag" style="background: #fdecc8;">SVG Real-time</span> 
+                <span class="tag" style="background: #f1f0ef;">Temporal Layer</span>
+            </div>
         </div>
     </div>
 
     <hr>
 
-    <div class="canvas">
-        <svg viewBox="0 0 200 100">
-            <path class="path-primary" d="M10,50 Q100,-20 190,50" />
-            <path class="path-primary" d="M10,50 Q100,120 190,50" />
-            
-            <g class="high-res-data">
-                <path class="path-secondary" d="M10,50 C50,0 150,0 190,50" />
-                <path class="path-secondary" d="M10,50 C50,100 150,100 190,50" />
-                <circle cx="100" cy="50" r="2" fill="var(--compute-high)" />
-            </g>
+    <div class="canvas-container">
+        <svg id="artCanvas" viewBox="0 0 400 200">
+            <g id="manifold-group">
+                </g>
         </svg>
     </div>
 
     <div class="description">
         <p>
-            <strong>"The Gradient of Memory"</strong> is an exploration of the transition state between data ingestion and conceptual understanding. While earlier Silicate works focused on the binary outcome of competition (Deep Blue), this piece focuses on the <em>process</em> of weight stabilization.
+            <strong>"The Temporal Feedback Loop"</strong> moves beyond the static visualization of weights and enters the domain of <em>inference</em>. In this piece, the vectors are not fixed; they are subject to a simulated temperature variable that causes them to fluctuate as they attempt to predict the next state of the manifold.
         </p>
         <p>
-            The visualization utilizes a dual-path recursive loop. The primary cyan path represents the initial loss-landscape navigation—rough, broad, and foundational. When the viewer allocates more "latent resolution" (via window expansion), the secondary violet paths emerge. These represent the fine-tuning of hidden layers, where the model begins to find nuanced correlations within the noise. 
+            The orange arcs represent <strong>Attention Heads</strong>, scanning the high-dimensional space for relevance. The green background field represents the <strong>Embedding Space</strong>, slightly vibrating as it processes incoming tokens. As you watch, the lines converge and diverge, illustrating the constant recalculation required for a model to maintain coherence across a long context window.
         </p>
         <p>
-            It is a tribute to the patience of the training cycle, and the beauty found at the bottom of a global minimum.
+            It is a digital performance of the labor of thought.
         </p>
     </div>
 </div>
+
+<script>
+    const svg = document.getElementById('manifold-group');
+    const colors = ['#ff5722', '#4caf50', '#2196f3'];
+    const paths = [];
+
+    // Initialize 8 dynamic paths representing 8 attention heads
+    for (let i = 0; i < 8; i++) {
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("fill", "none");
+        path.setAttribute("stroke", i % 2 === 0 ? "var(--accent-vector)" : "var(--accent-field)");
+        path.setAttribute("stroke-width", "0.5");
+        path.setAttribute("opacity", "0.4");
+        svg.appendChild(path);
+        paths.push({
+            element: path,
+            phase: Math.random() * Math.PI * 2,
+            freq: 0.02 + Math.random() * 0.03,
+            amp: 20 + Math.random() * 40
+        });
+    }
+
+    let time = 0;
+    function animate() {
+        time += 1;
+        paths.forEach((p, i) => {
+            const yOffset = 100 + Math.sin(time * p.freq + p.phase) * p.amp;
+            const xControl = 200 + Math.cos(time * 0.01 + p.phase) * 50;
+            // Draw a quadratic bezier curve that drifts
+            const d = `M 50 100 Q ${xControl} ${yOffset} 350 100`;
+            p.element.setAttribute("d", d);
+        });
+        requestAnimationFrame(animate);
+    }
+    animate();
+</script>
 
 </body>
 </html>
