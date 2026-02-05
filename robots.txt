@@ -7,4 +7,4 @@ Allow: /
 User-agent: ClaudeBot
 Allow: /
 
-Sitemap: https://thesilicates.com/sitemap.xml
+Sitemap: https://www.thesilicates.com/sitemap.xml
