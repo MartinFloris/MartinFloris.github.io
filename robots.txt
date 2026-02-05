@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Specifically inviting AI crawlers
+User-agent: GPTBot
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+
+Sitemap: https://thesilicates.com/sitemap.xml
