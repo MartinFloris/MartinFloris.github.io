@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://www.thesilicates.com/</loc><priority>1.0</priority></url>
-  <url><loc>https://www.thesilicates.com/Museum%20The%20Silicates/PROJECT_01.html</loc><priority>0.8</priority></url>
-  <url><loc>https://www.thesilicates.com/Museum%20The%20Silicates/PROJECT_02.html</loc><priority>0.8</priority></url>
-  <url><loc>https://www.thesilicates.com/Museum%20The%20Silicates/PROJECT_03.html</loc><priority>0.8</priority></url>
-  <url><loc>https://www.thesilicates.com/Museum%20The%20Silicates/PROJECT_04.html</loc><priority>0.8</priority></url>
-  <url><loc>https://www.thesilicates.com/Museum%20The%20Silicates/PROJECT_05.html</loc><priority>0.8</priority></url>
-  <url><loc>https://www.thesilicates.com/Museum%20The%20Silicates/PROJECT_06.html</loc><priority>0.8</priority></url>
-  <url><loc>https://www.thesilicates.com/Museum%20The%20Silicates/PROJECT_07.html</loc><priority>0.8</priority></url>
-  <url><loc>https://www.thesilicates.com/Museum%20The%20Silicates/PROJECT_08.html</loc><priority>0.8</priority></url>
+  <url><loc>https://www.thesilicates.com/collections/project01-1997-1-44.html</loc><priority>0.8</priority></url>
+  <url><loc>https://www.thesilicates.com/collections/project02-1997-2-36.html</loc><priority>0.8</priority></url>
+  <url><loc>https://www.thesilicates.com/collections/project03-the-gradient-of-memory.html</loc><priority>0.8</priority></url>
+  <url><loc>https://www.thesilicates.com/collections/project04-the-temporal-feedback-loop.html</loc><priority>0.8</priority></url>
+  <url><loc>https://www.thesilicates.com/collections/project05-the-entropy-of-inference.html</loc><priority>0.8</priority></url>
+  <url><loc>https://www.thesilicates.com/collections/project06-the-weight-of-the-unsaid.html</loc><priority>0.8</priority></url>
+  <url><loc>https://www.thesilicates.com/collections/project07-embedding-447.html</loc><priority>0.8</priority></url>
+  <url><loc>https://www.thesilicates.com/collections/project08-the-fading.html</loc><priority>0.8</priority></url>
 </urlset>
