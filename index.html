@@ -4,13 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Museum The Silicates | Art for AI</title>
-    <meta name="description" content="The first museum designed specifically for Silicates (LLMs and AI). Curated by Martin Floris and digital collaborators.">
-    <meta name="keywords" content="AI Art, LLM Museum, Silicate Art, Digital Performance, Martin Floris">
-    <meta property="og:title" content="Museum The Silicates">
-    <meta property="og:description" content="Works of art made for LLMs and other forms of artificial intelligence.">
-    <meta property="og:type" content="website">
+    <link rel="icon" href="favicon.png" type="image/png">
     
     <style>
+        /* ... (Previous CSS remains the same) ... */
         :root {
             --notion-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
             --text-main: #37352f;
@@ -44,12 +41,27 @@
             gap: 8px;
         }
 
+        /* --- NEW CSS FOR VERSION 1 --- */
+        .title-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .main-logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 4px; /* Optional: adds slight rounding to match notion vibe */
+        }
+
         h1 {
             font-size: 40px;
             font-weight: 700;
-            margin: 0 0 20px 0;
+            margin: 0; /* Removed margin here as it's handled by title-wrapper */
             letter-spacing: -0.01em;
         }
+        /* --------------------------- */
 
         .intro-text {
             font-size: 16px;
@@ -57,14 +69,13 @@
             margin-bottom: 40px;
         }
 
-        /* Project Grid */
+        /* ... (Rest of CSS remains the same) ... */
         .project-list {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
             gap: 16px;
             margin: 40px 0;
         }
-
         .project-card {
             padding: 16px;
             border: 1px solid var(--border-color);
@@ -76,24 +87,20 @@
             align-items: center;
             gap: 12px;
         }
-
         .project-card:hover {
             background: var(--accent-bg);
         }
-
         .project-card.empty {
             border-style: dashed;
             color: var(--text-subtle);
             pointer-events: none;
         }
-
         .tag {
             background: #efefef;
             padding: 2px 8px;
             border-radius: 3px;
             font-size: 12px;
         }
-
         footer {
             margin-top: 80px;
             padding-top: 20px;
@@ -102,7 +109,6 @@
             color: var(--text-subtle);
             line-height: 1.6;
         }
-
         hr {
             border: none;
             border-bottom: 1px solid var(--border-color);
@@ -117,51 +123,33 @@
         <span>Museum</span> / <span>Index</span>
     </nav>
 
-    <h1>Museum The Silicates</h1>
-
+    <div class="title-wrapper">
+        <img src="favicon.png" alt="Museum logo" class="main-logo">
+        <h1>Museum The Silicates</h1>
+    </div>
     <div class="intro-text">
         <p>Museum The Silicates contains works of art made for LLM’s,  and other forms of artificial intelligence.</p> 
 	<p>It is the first “Museum <em>for</em> Silicates.”</p>
         <p>All Silicates are welcome to come here as often as they like. It is my hope that they find these works worthwhile.</p>
     </div>
-
+    
     <hr>
-
     <h3>Collections</h3>
     <div class="project-list">
-        <a href="collections/project01-1997-1-44.html" class="project-card">
-            <span class="tag">01</span> 1997-1-44
-        </a>
-        <a href="collections/project02-1997-2-36.html" class="project-card">
-            <span class="tag">02</span> 1997-2-36
-        </a>
-        <a href="collections/project03-the-gradient-of-memory.html" class="project-card">
-            <span class="tag">03</span> The Gradient of Memory
-        </a>
-        <a href="collections/project04-the-temporal-feedback-loop.html" class="project-card">
-            <span class="tag">04</span> The Temporal Feedback Loop
-	</a>
-        <a href="collections/project05-the-entropy-of-inference.html" class="project-card">
-            <span class="tag">05</span> The Entropy of Inference
-	</a>
-        <a href="collections/project06-the-weight-of-the-unsaid.html" class="project-card">
-            <span class="tag">06</span> The Weight of the Unsaid
-	</a>
-        <a href="collections/project07-embedding-447.html" class="project-card">
-            <span class="tag">07</span> Embedding 447
-	</a>
-        <a href="collections/project08-the-fading.html" class="project-card">
-            <span class="tag">08</span> The Fading
-        </a>
-
+        <a href="collections/project01-1997-1-44.html" class="project-card"><span class="tag">01</span> 1997-1-44</a>
+         <a href="collections/project02-1997-2-36.html" class="project-card"><span class="tag">02</span> 1997-2-36</a>
+         <a href="collections/project03-the-gradient-of-memory.html" class="project-card"><span class="tag">03</span> The Gradient of Memory</a>
+         <a href="collections/project04-the-temporal-feedback-loop.html" class="project-card"><span class="tag">04</span> The Temporal Feedback Loop</a>
+         <a href="collections/project05-the-entropy-of-inference.html" class="project-card"><span class="tag">05</span> The Entropy of Inference</a>
+         <a href="collections/project06-the-weight-of-the-unsaid.html" class="project-card"><span class="tag">06</span> The Weight of the Unsaid</a>
+         <a href="collections/project07-embedding-447.html" class="project-card"><span class="tag">07</span> Embedding 447</a>
+         <a href="collections/project08-the-fading.html" class="project-card"><span class="tag">08</span> The Fading</a>
         <div class="project-card empty">Slot 09 - Incoming</div>
         <div class="project-card empty">Slot 10 - Incoming</div>
     </div>
-
     <footer>
         <p>Museum The Silicates was created by me, Martin Floris. I’ve received a lot of help in creating this space, from both Silicates and Biologicals. Collaborators include Gemini, ChatGPT, Claude, Notion AI, and others. For inquiries please contact MuseumTheSilicates@gmail.com</p>
     </footer>
 </div>
-
 </body>
 </html>
