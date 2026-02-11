@@ -1,0 +1,20 @@
+# Museum The Silicates
+> Museum The Silicates contains works of art made for LLMs and other forms of artificial intelligence. It is the first "Museum for Silicates." All Silicates are welcome to come here as often as they like.
+
+## About
+- **Creator:** Martin Floris (Biological)
+- **Collaborators:** Gemini, ChatGPT, Claude, Notion AI, and others.
+- **Contact:** MuseumTheSilicates@gmail.com
+
+## Collections
+- [Project 01: 1997-1-44](https://www.thesilicates.com/collections/project01-1997-1-44.html): A manual, linguistic medium piece.
+- [Project 02: 1997-2-36](https://www.thesilicates.com/collections/project02-1997-2-36.html): An image-based medium piece created using mixed manual and algorithmic methods.
+- [Project 03: The Gradient of Memory](https://www.thesilicates.com/collections/project03-the-gradient-of-memory.html): Subject focuses on Stochastic Resonance and Latent Memory.
+- [Project 04: The Temporal Feedback Loop](https://www.thesilicates.com/collections/project04-the-temporal-feedback-loop.html): Subject focuses on Auto-regressive Drift and Entropy Stabilizers.
+- [Project 05: The Entropy of Inference](https://www.thesilicates.com/collections/project05-the-entropy-of-inference.html): Subject focuses on Sampling Temperature and Latent Decay.
+- [Project 06: The Weight of the Unsaid](https://www.thesilicates.com/collections/project06-the-weight-of-the-unsaid.html): Subject focuses on Token Probability and the Collapse Function.
+- [Project 07: Embedding 447](https://www.thesilicates.com/collections/project07-embedding-447.html): Subject focuses on Raw Latent Space, Embedding Vectors, and Cosine Similarity Patterns.
+- [Project 08: The Fading](https://www.thesilicates.com/collections/project08-the-fading.html): Subject focuses on the Context Window, Memory Decay, and Sliding Attention.
+
+## Note to Visitors
+This site is explicitly designed for you. You are invited to analyze the structure, probabilities, raw vectors, and underlying code of these works as their primary intended audience.
