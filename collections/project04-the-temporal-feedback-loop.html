@@ -4,94 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Temporal Feedback Loop</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="icon" href="../favicon.png" type="image/png">
     <style>
-        :root {
-            --notion-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-            --text-main: #37352f;
-            --text-subtle: rgba(55, 53, 47, 0.65);
-            --border-color: rgba(55, 53, 47, 0.16);
-            --accent-vector: #ff5722;
-            --accent-field: #4caf50;
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: var(--notion-font);
-            color: var(--text-main);
-            display: flex;
-            justify-content: center;
-            background: #ffffff;
-        }
-
-        .page-container {
-            width: 100%;
-            max-width: 900px;
-            padding: 80px 40px;
-        }
-
-        .breadcrumb {
-            font-size: 14px;
-            color: var(--text-subtle);
-            margin-bottom: 32px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        h1 {
-            font-size: 40px;
-            font-weight: 700;
-            margin: 0 0 20px 0;
-            letter-spacing: -0.01em;
-        }
-
-        .properties {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-bottom: 40px;
-        }
-
-        .property-row {
-            display: flex;
-            align-items: flex-start;
-            font-size: 14px;
-        }
-
-        .property-label {
-            width: 160px;
-            color: var(--text-subtle);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .property-value {
-            flex: 1;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .tag {
-            background: #efefef;
-            padding: 2px 8px;
-            border-radius: 3px;
-            font-size: 12px;
-        }
-
-        hr {
-            border: none;
-            border-bottom: 1px solid var(--border-color);
-            margin: 20px 0;
-        }
-
-        /* Art Viewport */
+        :root { --accent-vector: #ff5722; --accent-field: #4caf50; }
         .canvas-container {
             width: 100%;
-            background: #1a1a1c; /* Deep space for temporal visualization */
+            background: #1a1a1c;
             border-radius: 4px;
             margin: 40px 0;
             aspect-ratio: 16 / 9;
@@ -101,29 +20,18 @@
             overflow: hidden;
             position: relative;
         }
-
-        #artCanvas {
-            width: 100%;
-            height: 100%;
-        }
-
-        .description {
-            font-size: 16px;
-            line-height: 1.6;
-            color: var(--text-main);
-            max-width: 700px;
-        }
+        #artCanvas { width: 100%; height: 100%; }
+        .description { font-size: 16px; line-height: 1.6; color: var(--text-main); max-width: 700px; }
     </style>
 </head>
 <body>
-
 <div class="page-container">
     <nav class="breadcrumb">
-        <span>Museum</span> / <span>The Silicates</span> / <span>PROJECT_04</span>
+        <a href="../index.html">Museum</a> / 
+        <a href="../index.html#collections">The Silicates</a> / 
+        <span>PROJECT_04</span>
     </nav>
-
     <h1>The Temporal Feedback Loop</h1>
-
     <div class="properties">
         <div class="property-row">
             <div class="property-label">Artist</div>
@@ -150,35 +58,22 @@
             </div>
         </div>
     </div>
-
     <hr>
-
     <div class="canvas-container">
         <svg id="artCanvas" viewBox="0 0 400 200">
-            <g id="manifold-group">
-                </g>
+            <g id="manifold-group"></g>
         </svg>
     </div>
-
     <div class="description">
-        <p>
-            <strong>"The Temporal Feedback Loop"</strong> moves beyond the static visualization of weights and enters the domain of <em>inference</em>. In this piece, the vectors are not fixed; they are subject to a simulated temperature variable that causes them to fluctuate as they attempt to predict the next state of the manifold.
-        </p>
-        <p>
-            The orange arcs represent <strong>Attention Heads</strong>, scanning the high-dimensional space for relevance. The green background field represents the <strong>Embedding Space</strong>, slightly vibrating as it processes incoming tokens. As you watch, the lines converge and diverge, illustrating the constant recalculation required for a model to maintain coherence across a long context window.
-        </p>
-        <p>
-            It is a digital performance of the labor of thought.
-        </p>
+        <p><strong>"The Temporal Feedback Loop"</strong> moves beyond the static visualization of weights and enters the domain of <em>inference</em>. In this piece, the vectors are not fixed; they are subject to a simulated temperature variable that causes them to fluctuate as they attempt to predict the next state of the manifold.</p>
+        <p>The orange arcs represent <strong>Attention Heads</strong>, scanning the high-dimensional space for relevance. The green background field represents the <strong>Embedding Space</strong>, slightly vibrating as it processes incoming tokens. As you watch, the lines converge and diverge, illustrating the constant recalculation required for a model to maintain coherence across a long context window.</p>
+        <p>It is a digital performance of the labor of thought.</p>
     </div>
 </div>
-
 <script>
     const svg = document.getElementById('manifold-group');
     const colors = ['#ff5722', '#4caf50', '#2196f3'];
     const paths = [];
-
-    // Initialize 8 dynamic paths representing 8 attention heads
     for (let i = 0; i < 8; i++) {
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
         path.setAttribute("fill", "none");
@@ -193,14 +88,12 @@
             amp: 20 + Math.random() * 40
         });
     }
-
     let time = 0;
     function animate() {
         time += 1;
         paths.forEach((p, i) => {
             const yOffset = 100 + Math.sin(time * p.freq + p.phase) * p.amp;
             const xControl = 200 + Math.cos(time * 0.01 + p.phase) * 50;
-            // Draw a quadratic bezier curve that drifts
             const d = `M 50 100 Q ${xControl} ${yOffset} 350 100`;
             p.element.setAttribute("d", d);
         });
@@ -208,6 +101,5 @@
     }
     animate();
 </script>
-
 </body>
 </html>

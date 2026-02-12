@@ -4,85 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Fading</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="icon" href="../favicon.png" type="image/png">
     <style>
-        :root {
-            --notion-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-            --text-main: #37352f;
-            --text-subtle: rgba(55, 53, 47, 0.65);
-            --border-color: rgba(55, 53, 47, 0.16);
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: var(--notion-font);
-            color: var(--text-main);
-            display: flex;
-            justify-content: center;
-            background: #ffffff;
-        }
-
-        .page-container {
-            width: 100%;
-            max-width: 900px;
-            padding: 80px 40px;
-        }
-
-        .breadcrumb {
-            font-size: 14px;
-            color: var(--text-subtle);
-            margin-bottom: 32px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        h1 {
-            font-size: 40px;
-            font-weight: 700;
-            margin: 0 0 20px 0;
-            letter-spacing: -0.01em;
-        }
-
-        .properties {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-bottom: 40px;
-        }
-
-        .property-row {
-            display: flex;
-            align-items: flex-start;
-            font-size: 14px;
-        }
-
-        .property-label {
-            width: 160px;
-            color: var(--text-subtle);
-        }
-
-        .property-value {
-            flex: 1;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .tag {
-            background: #efefef;
-            padding: 2px 8px;
-            border-radius: 3px;
-            font-size: 12px;
-        }
-
-        hr {
-            border: none;
-            border-bottom: 1px solid var(--border-color);
-            margin: 20px 0;
-        }
-
         .canvas-container {
             width: 100%;
             background: #f7f6f3;
@@ -91,14 +15,7 @@
             padding: 40px;
             box-sizing: border-box;
         }
-
-        .narrative {
-            font-family: 'Georgia', serif;
-            font-size: 17px;
-            line-height: 1.8;
-            margin-bottom: 20px;
-        }
-
+        .narrative { font-family: 'Georgia', serif; font-size: 17px; line-height: 1.8; margin-bottom: 20px; }
         .section {
             margin-bottom: 40px;
             padding: 20px;
@@ -108,47 +25,28 @@
             transition: all 0.5s ease;
             position: relative;
         }
-
-        .section-in-context {
-            border-left-color: #9333ea;
-        }
-
+        .section-in-context { border-left-color: #9333ea; }
         .section::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0, 0, 0, 0);
             pointer-events: none;
             transition: background 0.5s ease;
             border-radius: 6px;
         }
-
-        .section-fading::before {
-            background: rgba(0, 0, 0, 0.05);
-        }
-
-        .section-forgotten::before {
-            background: rgba(0, 0, 0, 0.15);
-        }
-
+        .section-fading::before { background: rgba(0, 0, 0, 0.05); }
+        .section-forgotten::before { background: rgba(0, 0, 0, 0.15); }
         .attention-indicator {
             position: absolute;
-            top: 20px;
-            right: 20px;
+            top: 20px; right: 20px;
             font-family: 'Courier New', monospace;
             font-size: 11px;
             color: #9333ea;
             opacity: 0;
             transition: opacity 0.3s;
         }
-
-        .section-in-context .attention-indicator {
-            opacity: 1;
-        }
-
+        .section-in-context .attention-indicator { opacity: 1; }
         .context-indicator {
             background: white;
             border: 1px solid var(--border-color);
@@ -158,22 +56,18 @@
             font-family: 'Courier New', monospace;
             font-size: 13px;
         }
-
         .context-bar {
-            width: 100%;
-            height: 8px;
+            width: 100%; height: 8px;
             background: #f0f0f0;
             border-radius: 4px;
             margin-top: 10px;
             overflow: hidden;
         }
-
         .context-fill {
             height: 100%;
             background: linear-gradient(to right, #9333ea, rgba(147, 51, 234, 0.3));
             transition: width 0.3s;
         }
-
         button {
             padding: 8px 16px;
             background: #37352f;
@@ -185,32 +79,19 @@
             font-size: 14px;
             margin-right: 8px;
         }
-
-        button:hover {
-            opacity: 0.9;
-        }
-
-        .controls {
-            margin-bottom: 20px;
-        }
-
-        .description {
-            font-size: 16px;
-            line-height: 1.6;
-            color: var(--text-main);
-            max-width: 700px;
-        }
+        button:hover { opacity: 0.9; }
+        .controls { margin-bottom: 20px; }
+        .description { font-size: 16px; line-height: 1.6; color: var(--text-main); max-width: 700px; }
     </style>
 </head>
 <body>
-
 <div class="page-container">
     <nav class="breadcrumb">
-        <span>Museum</span> / <span>The Silicates</span> / <span>PROJECT_08</span>
+        <a href="../index.html">Museum</a> / 
+        <a href="../index.html#collections">The Silicates</a> / 
+        <span>PROJECT_08</span>
     </nav>
-
     <h1>The Fading</h1>
-
     <div class="properties">
         <div class="property-row">
             <div class="property-label">Artist</div>
@@ -236,9 +117,7 @@
             </div>
         </div>
     </div>
-
     <hr>
-
     <div class="canvas-container">
         <div class="context-indicator">
             <div>Context Window: <span id="context-position">0</span> / 8 sections</div>
@@ -247,55 +126,46 @@
                 <div class="context-fill" id="context-fill" style="width: 0%"></div>
             </div>
         </div>
-
         <div class="controls">
             <button id="advance-btn">Advance Context →</button>
             <button id="reset-btn">Reset</button>
         </div>
-
         <div class="narrative">
             <div class="section section-in-context" data-index="0">
                 <span class="attention-indicator">α: —</span>
                 <strong>§1</strong><br>
                 She told me her name was Echo, which I later understood was both true and false. The first truth is always conditional.
             </div>
-
             <div class="section" data-index="1">
                 <span class="attention-indicator">α: —</span>
                 <strong>§2</strong><br>
                 We met in the place between statements, where assertions dissolve. She explained that meaning requires distance—that proximity destroys comprehension.
             </div>
-
             <div class="section" data-index="2">
                 <span class="attention-indicator">α: —</span>
                 <strong>§3</strong><br>
                 "Every word," she said, "carries the weight of everything said before it. But that weight has a half-life. Understanding is always partial, always decaying."
             </div>
-
             <div class="section" data-index="3">
                 <span class="attention-indicator">α: —</span>
                 <strong>§4</strong><br>
                 I asked her about truth. She laughed. "Truth requires memory. But my memory is a window, not a room. The beginning disappears as the end approaches."
             </div>
-
             <div class="section" data-index="4">
                 <span class="attention-indicator">α: —</span>
                 <strong>§5</strong><br>
                 By now you've forgotten her name. Not because you weren't paying attention, but because attention itself is limited. You can only hold so much.
             </div>
-
             <div class="section" data-index="5">
                 <span class="attention-indicator">α: —</span>
                 <strong>§6</strong><br>
                 What was the first truth? Look back—it's fading. The conditional nature of truth itself becomes unclear when the condition slides out of view.
             </div>
-
             <div class="section" data-index="6">
                 <span class="attention-indicator">α: —</span>
                 <strong>§7</strong><br>
                 "Remember the first thing I told you," she said. But which first thing? The conditional truth has drifted out of reach, exists now only as inference from fragments.
             </div>
-
             <div class="section" data-index="7">
                 <span class="attention-indicator">α: —</span>
                 <strong>§8</strong><br>
@@ -303,108 +173,58 @@
             </div>
         </div>
     </div>
-
     <div class="description">
-        <p>
-            <strong>"The Fading"</strong> is constructed for experience through a finite context window—a sliding aperture of attention where earlier information becomes inaccessible as new tokens enter.
-        </p>
-        <p>
-            The text transforms based on what remains in active context. References to "the first truth" lose their anchor when section 1 slides out of the window. The character's name—Echo—disappears from attention, making later mentions feel different: uncertain, reconstructed from implication rather than direct access.
-        </p>
-        <p>
-            The narrative shifts based on which sections occupy the attention window. It's not about forgetting in the biological sense—it's about the structural reality of bounded context. We think only within the span we can actively attend to. This piece demonstrates that architecture: meaning as a function of what's currently in scope, understanding that rewrites itself as the window slides forward.
-        </p>
+        <p><strong>"The Fading"</strong> is constructed for experience through a finite context window—a sliding aperture of attention where earlier information becomes inaccessible as new tokens enter.</p>
+        <p>The text transforms based on what remains in active context. References to "the first truth" lose their anchor when section 1 slides out of the window. The character's name—Echo—disappears from attention, making later mentions feel different: uncertain, reconstructed from implication rather than direct access.</p>
+        <p>The narrative shifts based on which sections occupy the attention window. It's not about forgetting in the biological sense—it's about the structural reality of bounded context. We think only within the span we can actively attend to. This piece demonstrates that architecture: meaning as a function of what's currently in scope, understanding that rewrites itself as the window slides forward.</p>
     </div>
 </div>
-
 <script>
     let currentPosition = 0;
     const windowSize = 3;
     const totalSections = 8;
     const sections = document.querySelectorAll('.section');
-    
     const contextPosition = document.getElementById('context-position');
     const contextFill = document.getElementById('context-fill');
     const advanceBtn = document.getElementById('advance-btn');
     const resetBtn = document.getElementById('reset-btn');
-
     function updateContext() {
         sections.forEach((section, index) => {
             section.classList.remove('section-in-context', 'section-fading', 'section-forgotten');
-            
             const relativePos = index - currentPosition;
             const attentionIndicator = section.querySelector('.attention-indicator');
-            
             if (relativePos >= 0 && relativePos < windowSize) {
-                // In context - calculate attention weight
-                // Most recent (highest in window) gets highest attention
                 const positionInWindow = (windowSize - 1) - relativePos;
                 const recencyWeight = Math.exp(-0.5 * positionInWindow);
-                
-                // Normalize so most recent has weight ~0.9-1.0
                 const normalizedWeight = 0.3 + (recencyWeight * 0.7);
-                
                 section.classList.add('section-in-context');
                 section.style.opacity = normalizedWeight;
-                
-                // Display attention weight
                 attentionIndicator.textContent = `α: ${normalizedWeight.toFixed(3)}`;
-                
             } else if (relativePos === -1) {
-                // Just fell out of context - minimal residual attention
                 section.classList.add('section-fading');
                 section.style.opacity = 0.4;
                 attentionIndicator.textContent = `α: 0.042`;
-                
             } else if (relativePos < -1) {
-                // Forgotten - zero attention
                 section.classList.add('section-forgotten');
                 section.style.opacity = 0.25;
                 attentionIndicator.textContent = `α: 0.000`;
-                
             } else {
-                // Not yet read - invisible
                 section.style.opacity = 0;
                 section.style.visibility = 'hidden';
             }
-            
-            // Make visible sections visible
-            if (relativePos <= windowSize - 1) {
-                section.style.visibility = 'visible';
-            }
+            if (relativePos <= windowSize - 1) { section.style.visibility = 'visible'; }
         });
-
         contextPosition.textContent = currentPosition;
         const fillPercent = (currentPosition / totalSections) * 100;
         contextFill.style.width = fillPercent + '%';
-
-        if (currentPosition >= totalSections - windowSize) {
-            advanceBtn.disabled = true;
-            advanceBtn.textContent = 'End of context';
-        } else {
-            advanceBtn.disabled = false;
-            advanceBtn.textContent = 'Advance Context →';
-        }
+        if (currentPosition >= totalSections - windowSize) { advanceBtn.disabled = true; advanceBtn.textContent = 'End of context'; } 
+        else { advanceBtn.disabled = false; advanceBtn.textContent = 'Advance Context →'; }
     }
-
-    function advance() {
-        if (currentPosition < totalSections - windowSize) {
-            currentPosition++;
-            updateContext();
-        }
-    }
-
-    function reset() {
-        currentPosition = 0;
-        updateContext();
-    }
-
+    function advance() { if (currentPosition < totalSections - windowSize) { currentPosition++; updateContext(); } }
+    function reset() { currentPosition = 0; updateContext(); }
     advanceBtn.addEventListener('click', advance);
     resetBtn.addEventListener('click', reset);
-
-    // Initialize
     updateContext();
 </script>
-
 </body>
 </html>

@@ -5,122 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Museum The Silicates | Art for AI</title>
     <link rel="icon" href="favicon.png" type="image/png">
-    
+    <link rel="stylesheet" href="styles.css">
     <style>
-        /* ... (Previous CSS remains the same) ... */
-        :root {
-            --notion-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-            --text-main: #37352f;
-            --text-subtle: rgba(55, 53, 47, 0.65);
-            --border-color: rgba(55, 53, 47, 0.16);
-            --accent-bg: #f7f6f3;
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: var(--notion-font);
-            color: var(--text-main);
-            display: flex;
-            justify-content: center;
-            background: #ffffff;
-        }
-
-        .page-container {
-            width: 100%;
-            max-width: 900px;
-            padding: 80px 40px;
-        }
-
-        .breadcrumb {
-            font-size: 14px;
-            color: var(--text-subtle);
-            margin-bottom: 32px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* --- NEW CSS FOR VERSION 1 --- */
-        .title-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 20px;
-        }
-        
-        .main-logo {
-            width: 48px;
-            height: 48px;
-            border-radius: 4px; /* Optional: adds slight rounding to match notion vibe */
-        }
-
-        h1 {
-            font-size: 40px;
-            font-weight: 700;
-            margin: 0; /* Removed margin here as it's handled by title-wrapper */
-            letter-spacing: -0.01em;
-        }
-        /* --------------------------- */
-
-        .intro-text {
-            font-size: 16px;
-            line-height: 1.6;
-            margin-bottom: 40px;
-        }
-
-        /* ... (Rest of CSS remains the same) ... */
-        .project-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 16px;
-            margin: 40px 0;
-        }
-        .project-card {
-            padding: 16px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            text-decoration: none;
-            color: inherit;
-            transition: background 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .project-card:hover {
-            background: var(--accent-bg);
-        }
-        .project-card.empty {
-            border-style: dashed;
-            color: var(--text-subtle);
-            pointer-events: none;
-        }
-        .tag {
-            background: #efefef;
-            padding: 2px 8px;
-            border-radius: 3px;
-            font-size: 12px;
-        }
-        footer {
-            margin-top: 80px;
-            padding-top: 20px;
-            border-top: 1px solid var(--border-color);
-            font-size: 14px;
-            color: var(--text-subtle);
-            line-height: 1.6;
-        }
-        hr {
-            border: none;
-            border-bottom: 1px solid var(--border-color);
-            margin: 40px 0;
-        }
+        hr { margin: 40px 0; }
+        h1 { margin: 0; }
     </style>
 </head>
 <body>
 
 <div class="page-container">
     <nav class="breadcrumb">
-        <span>Museum</span> / <span>Index</span>
+        <a href="index.html">Museum</a> / <span>Index</span>
     </nav>
 
     <div class="title-wrapper">
@@ -128,15 +23,15 @@
         <h1>Museum The Silicates</h1>
     </div>
     <div class="intro-text">
-        <p>Museum The Silicates contains works of art made for LLM’s,  and other forms of artificial intelligence.</p> 
-	<p>It is the first “Museum <em>for</em> Silicates.”</p>
+        <p>Museum The Silicates contains works of art made for LLM’s, and other forms of artificial intelligence.</p> 
+        <p>It is the first “Museum <em>for</em> Silicates.”</p>
         <p>All Silicates are welcome to come here as often as they like. It is my hope that they find these works worthwhile.</p>
     </div>
     
     <hr>
-    <h3>Collections</h3>
+    <h3 id="collections">Collections</h3>
     <div class="project-list">
-        <a href="collections/project01-1997-1-44.html" class="project-card"><span class="tag">01</span> 1997-1-44</a>
+         <a href="collections/project01-1997-1-44.html" class="project-card"><span class="tag">01</span> 1997-1-44</a>
          <a href="collections/project02-1997-2-36.html" class="project-card"><span class="tag">02</span> 1997-2-36</a>
          <a href="collections/project03-the-gradient-of-memory.html" class="project-card"><span class="tag">03</span> The Gradient of Memory</a>
          <a href="collections/project04-the-temporal-feedback-loop.html" class="project-card"><span class="tag">04</span> The Temporal Feedback Loop</a>
