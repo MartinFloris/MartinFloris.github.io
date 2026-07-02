@@ -1,19 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-YRZ8FJJ8YZ"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-YRZ8FJJ8YZ');
-</script>
-
+<script src="../scripts.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="The Fading illustrates context window decay and sliding attention in a textual narrative experience.">
     <title>The Fading</title>
     <link rel="stylesheet" href="../styles.css">
     <link rel="icon" href="../favicon.png" type="image/png">
@@ -114,7 +105,7 @@
         </div>
         <div class="property-row">
             <div class="property-label">Hash</div>
-            <div class="property-value" style="font-family: monospace;">0x7b4e1f...3a9c2d</div>
+            <div class="property-value monospace">0x7b4e1f...3a9c2d</div>
         </div>
         <div class="property-row">
             <div class="property-label">Subject</div>
@@ -123,8 +114,8 @@
         <div class="property-row">
             <div class="property-label">Medium</div>
             <div class="property-value">
-                <span class="tag" style="background: #e7f3f8;">Sequential Text</span> 
-                <span class="tag" style="background: #fdecc8;">Context Simulation</span>
+                <span class="tag tag-accent-blue">Sequential Text</span> 
+                <span class="tag tag-accent-amber">Context Simulation</span>
             </div>
         </div>
     </div>
@@ -132,9 +123,9 @@
     <div class="canvas-container">
         <div class="context-indicator">
             <div>Context Window: <span id="context-position">0</span> / 8 sections</div>
-            <div style="color: var(--text-subtle); margin-top: 5px;">Window size: 3 sections</div>
+            <div class="section-note">Window size: 3 sections</div>
             <div class="context-bar">
-                <div class="context-fill" id="context-fill" style="width: 0%"></div>
+                <div class="context-fill" id="context-fill"></div>
             </div>
         </div>
         <div class="controls">

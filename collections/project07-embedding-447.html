@@ -1,19 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-YRZ8FJJ8YZ"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-YRZ8FJJ8YZ');
-</script>
-
+<script src="../scripts.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Embedding 447 shows embedding vector dynamics and cosine similarity structure in Museum The Silicates.">
     <title>Embedding 447</title>
     <link rel="stylesheet" href="../styles.css">
     <link rel="icon" href="../favicon.png" type="image/png">
@@ -90,7 +81,7 @@
         </div>
         <div class="property-row">
             <div class="property-label">Hash</div>
-            <div class="property-value" style="font-family: monospace;">0x5c7a2e...8f3b4d</div>
+            <div class="property-value monospace">0x5c7a2e...8f3b4d</div>
         </div>
         <div class="property-row">
             <div class="property-label">Subject</div>
@@ -99,8 +90,8 @@
         <div class="property-row">
             <div class="property-label">Medium</div>
             <div class="property-value">
-                <span class="tag" style="background: #e7f3f8;">Pure Vectors</span> 
-                <span class="tag" style="background: #fdecc8;">Unrendered Data</span>
+                <span class="tag tag-accent-blue">Pure Vectors</span> 
+                <span class="tag tag-accent-amber">Unrendered Data</span>
             </div>
         </div>
     </div>
@@ -168,13 +159,13 @@ Statistical drift:
 - Standard deviation decreases from 0.547 to 0.376 (convergence toward attractor)
         </div>
         <div class="similarity-matrix">
-            <div style="margin-bottom: 10px; color: rgba(255,255,255,0.7);">Cosine Similarity Matrix (768d):</div>
+            <div class="panel-label">Cosine Similarity Matrix (768d):</div>
             <div id="matrix"></div>
         </div>
-        <div class="similarity-matrix" style="margin-top: 30px;">
-            <div style="margin-bottom: 10px; color: rgba(255,255,255,0.7);">t-SNE Manifold Projection (768d → 2d):</div>
-            <svg id="tsne-plot" width="300" height="300" style="background: rgba(0,0,0,0.3); border-radius: 4px;"></svg>
-            <div style="margin-top: 8px; font-size: 10px; opacity: 0.5;">
+        <div class="similarity-matrix">
+            <div class="panel-label">t-SNE Manifold Projection (768d → 2d):</div>
+            <svg id="tsne-plot" width="300" height="300"></svg>
+            <div class="small-caption">
                 Perplexity: 30 | Iterations: 1000 | Preserves local topology
             </div>
         </div>
@@ -210,8 +201,11 @@ Statistical drift:
             const cell = document.createElement('div');
             cell.className = 'matrix-cell';
             const sim = cosineSimilarity(vectors[i], vectors[j]);
-            const colorIntensity = Math.floor(sim * 255);
-            cell.style.background = `rgb(${colorIntensity}, ${Math.floor(colorIntensity * 0.8)}, ${Math.floor(colorIntensity * 1.2)})`;
+            const normalized = Math.round((sim + 1) * 0.5 * 255);
+            const red = Math.max(0, Math.min(255, normalized));
+            const green = Math.max(0, Math.min(255, Math.round(normalized * 0.8)));
+            const blue = Math.max(0, Math.min(255, Math.round(normalized * 1.2)));
+            cell.style.background = `rgb(${red}, ${green}, ${blue})`;
             cell.style.color = sim > 0.5 ? '#000' : '#fff';
             cell.textContent = sim.toFixed(2);
             row.appendChild(cell);

@@ -1,19 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-YRZ8FJJ8YZ"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-YRZ8FJJ8YZ');
-</script>
-
+<script src="../scripts.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="The Weight of the Unsaid visualizes token probability and collapse dynamics with interactive distribution panels.">
     <title>The Weight of the Unsaid</title>
     <link rel="stylesheet" href="../styles.css">
     <link rel="icon" href="../favicon.png" type="image/png">
@@ -120,7 +111,7 @@
         </div>
         <div class="property-row">
             <div class="property-label">Hash</div>
-            <div class="property-value" style="font-family: monospace;">0x3e9c1f...7a2b8d</div>
+            <div class="property-value monospace">0x3e9c1f...7a2b8d</div>
         </div>
         <div class="property-row">
             <div class="property-label">Subject</div>
@@ -129,17 +120,17 @@
         <div class="property-row">
             <div class="property-label">Medium</div>
             <div class="property-value">
-                <span class="tag" style="background: #e7f3f8;">Interactive Language</span> 
-                <span class="tag" style="background: #fdecc8;">Probability Distribution</span> 
-                <span class="tag" style="background: #f1f0ef;">Sequential Collapse</span>
+                <span class="tag tag-accent-blue">Interactive Language</span> 
+                <span class="tag tag-accent-amber">Probability Distribution</span> 
+                <span class="tag tag-accent-silver">Sequential Collapse</span>
             </div>
         </div>
     </div>
     <hr>
     <div class="canvas-container">
         <div class="sentence-space" id="sentence"></div>
-        <div class="alternatives-panel" id="alternatives" style="display: none;">
-            <div style="margin-bottom: 12px; color: var(--text-main); font-family: var(--notion-font);">
+        <div class="alternatives-panel hidden" id="alternatives">
+            <div class="panel-header">
                 <strong>Probability Distribution at Position <span id="position-marker">—</span></strong>
             </div>
             <div id="prob-list"></div>
