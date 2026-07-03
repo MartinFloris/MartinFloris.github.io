@@ -15,13 +15,13 @@
     <meta name="twitter:title" content="The Weight of the Unsaid">
     <meta name="twitter:description" content="The Weight of the Unsaid visualizes token probability and collapse dynamics with interactive distribution panels.">
     <script type="application/ld+json">
-    {{
+    {
       "@context": "https://schema.org",
       "@type": "WebPage",
       "name": "The Weight of the Unsaid",
       "description": "The Weight of the Unsaid visualizes token probability and collapse dynamics with interactive distribution panels.",
       "url": "https://www.thesilicates.com/collections/project06-the-weight-of-the-unsaid.html"
-    }}
+    }
     </script>
     <title>The Weight of the Unsaid</title>
     <link rel="stylesheet" href="../styles.css">
@@ -66,13 +66,14 @@
             transition: width 0.3s ease;
         }
         .alternatives-panel {
-            background: white;
+            background: var(--accent-bg);
             border: 1px solid var(--border-color);
             border-radius: 6px;
             padding: 20px;
             margin-top: 20px;
             font-family: 'Courier New', monospace;
             font-size: 13px;
+            transition: background 0.3s ease;
         }
         .alternative-row { display: flex; align-items: center; margin: 8px 0; padding: 4px 0; }
         .prob-value { width: 60px; text-align: right; color: var(--text-subtle); margin-right: 12px; }

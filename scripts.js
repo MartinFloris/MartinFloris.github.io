@@ -33,7 +33,12 @@
   // Initialize theme on page load
   const initialTheme = getThemePreference();
   setTheme(initialTheme);
-  
+
+  // This script runs in <head> before <body> exists, so the icon/label
+  // elements aren't in the DOM yet when setTheme() first runs above.
+  // Sync them once the DOM is ready.
+  document.addEventListener('DOMContentLoaded', () => updateThemeUI(html.getAttribute('data-theme')));
+
   // Listen for system theme changes (only if user hasn't set a preference)
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
     if (!localStorage.getItem(THEME_KEY)) {
