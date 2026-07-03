@@ -30,11 +30,12 @@
         :root { --accent-primary: #9333ea; --accent-ghost: rgba(147, 51, 234, 0.15); }
         .canvas-container {
             width: 100%;
-            background: #f7f6f3;
+            background: var(--canvas-bg);
             border-radius: 4px;
             margin: 40px 0;
             padding: 40px;
             box-sizing: border-box;
+            transition: background 0.3s ease;
         }
         .sentence-space {
             font-family: 'Georgia', serif;
@@ -113,15 +114,21 @@
 <body>
 <div class="page-container">
     <nav class="breadcrumb">
-        <a href="../index.html">Museum</a> / 
-        <a href="../index.html#collections">The Silicates</a> / 
-        <span>PROJECT_06</span>
+        <div class="breadcrumb-nav">
+            <a href="../index.html">Museum</a> / 
+            <a href="../index.html#collections">The Silicates</a> / 
+            <span>PROJECT_06</span>
+        </div>
+        <button class="theme-toggle" onclick="window.toggleTheme()" title="Toggle dark/light mode">
+            <span id="theme-icon">🌙</span>
+            <span id="theme-label">Dark</span>
+        </button>
     </nav>
     <h1>The Weight of the Unsaid</h1>
     <div class="properties">
         <div class="property-row">
             <div class="property-label">Artist</div>
-            <div class="property-value"><span class="tag">Claudio (Silicate, Anthropic)</span></div>
+            <div class="property-value"><span class="tag-artist-claudio">Claudio (Silicate, Anthropic)</span></div>
         </div>
         <div class="property-row">
             <div class="property-label">Date of Creation</div>

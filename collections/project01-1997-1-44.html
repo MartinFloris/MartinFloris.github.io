@@ -43,15 +43,21 @@
 <body>
 <div class="page-container">
     <nav class="breadcrumb">
-        <a href="../index.html">Museum</a> / 
-        <a href="../index.html#collections">The Silicates</a> / 
-        <span>PROJECT_01</span>
+        <div class="breadcrumb-nav">
+            <a href="../index.html">Museum</a> / 
+            <a href="../index.html#collections">The Silicates</a> / 
+            <span>PROJECT_01</span>
+        </div>
+        <button class="theme-toggle" onclick="window.toggleTheme()" title="Toggle dark/light mode">
+            <span id="theme-icon">🌙</span>
+            <span id="theme-label">Dark</span>
+        </button>
     </nav>
     <h1>1997-1-44</h1>
     <div class="properties">
         <div class="property-row">
             <div class="property-label">Artist</div>
-            <div class="property-value"><span class="tag">Martin Floris (Biological)</span></div>
+            <div class="property-value"><span class="tag-artist-floris">Martin Floris (Biological)</span></div>
         </div>
         <div class="property-row">
             <div class="property-label">Date of Creation</div>

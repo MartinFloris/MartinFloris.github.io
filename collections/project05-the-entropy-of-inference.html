@@ -30,7 +30,7 @@
         :root { --accent-logic: #2196f3; --accent-chaos: #f44336; }
         .canvas-container {
             width: 100%;
-            background: #f7f6f3;
+            background: var(--canvas-bg);
             border-radius: 4px;
             margin: 40px 0;
             padding: 20px;
@@ -38,6 +38,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            transition: background 0.3s ease;
         }
         #artCanvas { width: 100%; max-height: 400px; }
         .controls {
@@ -45,12 +46,13 @@
             max-width: 400px;
             margin-top: 20px;
             padding: 15px;
-            background: #ffffff;
+            background: var(--accent-bg);
             border: 1px solid var(--border-color);
             border-radius: 6px;
             display: flex;
             flex-direction: column;
             gap: 10px;
+            transition: background 0.3s ease;
         }
         .control-header {
             display: flex;
@@ -66,15 +68,21 @@
 <body>
 <div class="page-container">
     <nav class="breadcrumb">
-        <a href="../index.html">Museum</a> / 
-        <a href="../index.html#collections">The Silicates</a> / 
-        <span>PROJECT_05</span>
+        <div class="breadcrumb-nav">
+            <a href="../index.html">Museum</a> / 
+            <a href="../index.html#collections">The Silicates</a> / 
+            <span>PROJECT_05</span>
+        </div>
+        <button class="theme-toggle" onclick="window.toggleTheme()" title="Toggle dark/light mode">
+            <span id="theme-icon">🌙</span>
+            <span id="theme-label">Dark</span>
+        </button>
     </nav>
     <h1>The Entropy of Inference</h1>
     <div class="properties">
         <div class="property-row">
             <div class="property-label">Artist</div>
-            <div class="property-value"><span class="tag">Gembrandt (Silicate, Gemini)</span></div>
+            <div class="property-value"><span class="tag-artist-gembrandt">Gembrandt (Silicate, Gemini)</span></div>
         </div>
         <div class="property-row">
             <div class="property-label">Date of Creation</div>

@@ -6,6 +6,51 @@
     --text-subtle: rgba(55, 53, 47, 0.65);
     --border-color: rgba(55, 53, 47, 0.16);
     --accent-bg: #f7f6f3;
+    --background: #ffffff;
+    --tag-bg: #efefef;
+    --canvas-bg: #f7f6f3;
+    --button-bg: #37352f;
+    --button-text: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --text-main: #ececec;
+        --text-subtle: rgba(236, 236, 236, 0.65);
+        --border-color: rgba(236, 236, 236, 0.2);
+        --accent-bg: #2a2a2a;
+        --background: #1a1a1a;
+        --tag-bg: #505050;
+        --canvas-bg: #2a2a2a;
+        --button-bg: #ececec;
+        --button-text: #1a1a1a;
+    }
+}
+
+/* Dark theme override */
+[data-theme="dark"] {
+    --text-main: #ececec;
+    --text-subtle: rgba(236, 236, 236, 0.65);
+    --border-color: rgba(236, 236, 236, 0.2);
+    --accent-bg: #2a2a2a;
+    --background: #1a1a1a;
+    --tag-bg: #505050;
+    --canvas-bg: #2a2a2a;
+    --button-bg: #ececec;
+    --button-text: #1a1a1a;
+}
+
+/* Light theme override */
+[data-theme="light"] {
+    --text-main: #37352f;
+    --text-subtle: rgba(55, 53, 47, 0.65);
+    --border-color: rgba(55, 53, 47, 0.16);
+    --accent-bg: #f7f6f3;
+    --background: #ffffff;
+    --tag-bg: #efefef;
+    --canvas-bg: #f7f6f3;
+    --button-bg: #37352f;
+    --button-text: #ffffff;
 }
 
 body {
@@ -15,7 +60,8 @@ body {
     color: var(--text-main);
     display: flex;
     justify-content: center;
-    background: #ffffff;
+    background: var(--background);
+    transition: background 0.3s ease, color 0.3s ease;
 }
 
 .page-container {
@@ -31,6 +77,13 @@ body {
     margin-bottom: 32px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.breadcrumb-nav {
+    display: flex;
+    align-items: center;
     gap: 8px;
 }
 
@@ -44,6 +97,27 @@ body {
 .breadcrumb a:hover {
     color: var(--text-main);
     border-bottom-color: var(--text-subtle);
+}
+
+.theme-toggle {
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: var(--notion-font);
+    font-size: 12px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.theme-toggle:hover {
+    background: var(--accent-bg);
+    border-color: var(--text-main);
 }
 
 /* --- Typography --- */
@@ -97,10 +171,40 @@ hr {
 }
 
 .tag {
-    background: #efefef;
+    background: var(--tag-bg);
+    color: #000000;
     padding: 2px 8px;
     border-radius: 3px;
     font-size: 12px;
+    transition: background 0.3s ease;
+}
+
+/* Artist Tags - Unique colors per artist */
+.tag-artist-floris {
+    background: #fdecc8;
+    color: #000000;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    transition: background 0.3s ease;
+}
+
+.tag-artist-gembrandt {
+    background: #e9d5ff;
+    color: #000000;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    transition: background 0.3s ease;
+}
+
+.tag-artist-claudio {
+    background: #cffafe;
+    color: #000000;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    transition: background 0.3s ease;
 }
 
 /* --- Index Page Components --- */
@@ -155,34 +259,37 @@ hr {
 .tag-accent-ghost { opacity: 0.7; }
 .canvas {
     width: 100%;
-    background: #f7f6f3;
+    background: var(--canvas-bg);
     border-radius: 4px;
     margin: 40px 0;
     display: flex;
     justify-content: center;
     align-items: center;
     overflow: hidden;
+    transition: background 0.3s ease;
 }
 .canvas img { max-width: 100%; height: auto; display: block; }
 .canvas-container {
     width: 100%;
-    background: #f7f6f3;
+    background: var(--canvas-bg);
     border-radius: 4px;
     margin: 40px 0;
     padding: 20px;
     box-sizing: border-box;
+    transition: background 0.3s ease;
 }
 .description { font-size: 16px; line-height: 1.6; color: var(--text-main); max-width: 700px; }
 .controls { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
 button {
     padding: 8px 16px;
-    background: #37352f;
-    color: white;
+    background: var(--button-bg);
+    color: var(--button-text);
     border: none;
     border-radius: 4px;
     cursor: pointer;
     font-family: var(--notion-font);
     font-size: 14px;
+    transition: opacity 0.2s ease;
 }
 button:hover { opacity: 0.9; }
 button:disabled { background: #ccc; cursor: not-allowed; }

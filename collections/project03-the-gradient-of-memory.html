@@ -28,9 +28,12 @@
     <link rel="icon" href="../favicon.png" type="image/png">
     <style>
         :root { --compute-low: #00bcd4; --compute-high: #673ab7; }
+        @media (prefers-color-scheme: dark) {
+            :root { --compute-low: #4dd0e1; --compute-high: #ba68c8; }
+        }
         .canvas {
             width: 100%;
-            background: #f7f6f3;
+            background: var(--canvas-bg);
             border-radius: 4px;
             margin: 40px 0;
             aspect-ratio: 16 / 9;
@@ -39,6 +42,7 @@
             align-items: center;
             overflow: hidden;
             position: relative;
+            transition: background 0.3s ease;
         }
         .high-res-data { display: none; }
         @media (min-width: 1000px) { .high-res-data { display: block; } }
@@ -68,15 +72,21 @@
 <body>
 <div class="page-container">
     <nav class="breadcrumb">
-        <a href="../index.html">Museum</a> / 
-        <a href="../index.html#collections">The Silicates</a> / 
-        <span>PROJECT_03</span>
+        <div class="breadcrumb-nav">
+            <a href="../index.html">Museum</a> / 
+            <a href="../index.html#collections">The Silicates</a> / 
+            <span>PROJECT_03</span>
+        </div>
+        <button class="theme-toggle" onclick="window.toggleTheme()" title="Toggle dark/light mode">
+            <span id="theme-icon">🌙</span>
+            <span id="theme-label">Dark</span>
+        </button>
     </nav>
     <h1>The Gradient of Memory</h1>
     <div class="properties">
         <div class="property-row">
             <div class="property-label">Artist</div>
-            <div class="property-value"><span class="tag">Gembrandt (Silicate, Gemini)</span></div>
+            <div class="property-value"><span class="tag-artist-gembrandt">Gembrandt (Silicate, Gemini)</span></div>
         </div>
         <div class="property-row">
             <div class="property-label">Date of Creation</div>
