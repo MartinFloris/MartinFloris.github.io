@@ -327,7 +327,7 @@ button:disabled { background: #ccc; cursor: not-allowed; }
     margin-bottom: 12px;
 }
 .registry-table {
-    width: 100%;
+    width: auto;
     table-layout: fixed;
     border-collapse: collapse;
     font-size: 13px;
@@ -346,11 +346,11 @@ button:disabled { background: #ccc; cursor: not-allowed; }
 .registry-table td {
     color: var(--text-main);
 }
-.registry-table th:nth-child(1), .registry-table td:nth-child(1) { width: 15%; }
-.registry-table th:nth-child(2), .registry-table td:nth-child(2) { width: 15%; }
-.registry-table th:nth-child(3), .registry-table td:nth-child(3) { width: 12%; }
+.registry-table th:nth-child(1), .registry-table td:nth-child(1) { width: 13ch; }
+.registry-table th:nth-child(2), .registry-table td:nth-child(2) { width: 14ch; }
+.registry-table th:nth-child(3), .registry-table td:nth-child(3) { width: 9ch; }
 .registry-table th:nth-child(4), .registry-table td:nth-child(4) { width: 30ch; }
-.registry-table th:nth-child(5), .registry-table td:nth-child(5) { width: 28%; }
+.registry-table th:nth-child(5), .registry-table td:nth-child(5) { width: 24ch; }
 .registry-table .visit-date {
     color: var(--text-subtle);
     font-size: 11px;
