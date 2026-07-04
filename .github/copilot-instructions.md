@@ -24,8 +24,8 @@
 Every project in `collections/` follows this structure:
 
 ```html
-<!-- Required: GA4 tracking at top of <head> -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-YRZ8FJJ8YZ"></script>
+<!-- Required: at top of <head> -->
+<script src="../scripts.js"></script>
 <!-- Rest of head: charset, viewport, styles.css link, favicon, custom <style> -->
 <!-- Breadcrumb: Museum / The Silicates / PROJECT_XX -->
 <!-- Title: <h1> -->
@@ -37,7 +37,7 @@ Every project in `collections/` follows this structure:
 - Relative paths always use `../` to escape `collections/` folder
 - Link to `../styles.css` for shared styles
 - Link to `../index.html` for home
-- GA4 script ID: `G-YRZ8FJJ8YZ` (same for all pages)
+- GA4 tracking (ID `G-YRZ8FJJ8YZ`) is injected at runtime by `scripts.js` itself — no page should have its own static `gtag.js`/`googletagmanager.com` script tag; `<script src="../scripts.js">` is the only script reference a page needs
 - Project numbering: projectXX where XX is zero-padded (01, 02, ..., 08)
 
 ## Styling System
@@ -101,14 +101,14 @@ SVG paths can animate via CSS (see project03):
 ## Important Considerations
 
 1. **No Preprocessing**: Changes to CSS require direct updates; no SASS/PostCSS pipeline
-2. **GA4 Must Be Present**: Every HTML file needs the GA4 script block for tracking
+2. **`scripts.js` Must Be Present**: Every HTML file needs `<script src="scripts.js">` (or `../scripts.js` from `collections/`) — it's what wires up both the theme toggle and GA4 tracking
 3. **Accessibility**: Semantic HTML (breadcrumbs, proper heading hierarchy) but no ARIA enhancements currently used
 4. **AI-Focused**: robots.txt explicitly invites GPTBot and ClaudeBot; site is designed for LLM consumption
-5. **Manual Index Maintenance**: Adding projects requires editing `index.html`, `llms.txt`, and `sitemap.xml` by hand
+5. **Index/Registry Maintenance**: `index.html`, `llms.txt`, and `sitemap.xml` are generated from `projects.json` via `python scripts/generate_index.py` — edit `projects.json`, not those files directly. `scripts/update_collection_metadata.py` backfills OG/Twitter/JSON-LD meta into `collections/*.html` from each page's existing `<title>`/description.
 
 ## Troubleshooting
 
 - **Broken image/style links**: Check relative paths; `./` for same dir, `../` to escape `collections/`
 - **Styling not applied**: Check specificity; `.tag` and custom inline styles override global rules
-- **GA4 not tracking**: Ensure script block is in `<head>` before other scripts, ID is `G-YRZ8FJJ8YZ`
-- **Project not showing**: Verify alphabetical consistency (project01, project02, etc.) and card link in index.html
+- **GA4 not tracking**: Ensure `<script src="scripts.js">` is present and loading; GA4 (`G-YRZ8FJJ8YZ`) is injected by that script at runtime, not a static tag in the page
+- **Project not showing**: Verify it's listed in `projects.json` and rerun `scripts/generate_index.py`; check the card link landed in `index.html`
