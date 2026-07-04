@@ -79,9 +79,9 @@ const EXPECTED_ORG_PATTERNS = {
 
 const REGISTRY_KEY = 'registry';
 const MAX_ENTRIES = 500;
-const LASTSEEN_TTL_SECONDS = 60 * 60 * 24 * 30;
-const POLITENESS_MIN_DELTA_MS = 200;
-const POLITENESS_MAX_DELTA_MS = 10000;
+// registry.json is edge-cached this long so repeated live-poll requests don't each
+// hit KV; kept short since new visits should still surface quickly.
+const REGISTRY_CACHE_SECONDS = 15;
 
 // Returns a bot identity string, 'unknown-agent' for non-browser scripted clients,
 // or null for anything that looks like a real browser (those aren't logged).
@@ -127,25 +127,6 @@ function networkInfo(request, identity) {
   return { asn, org, verified };
 }
 
-// Scores crawl courtesy from real elapsed time since this client's last request.
-// Fails open to a neutral score if KV is unavailable.
-async function politenessScore(env, clientHash, nowMs) {
-  const key = `lastseen:${clientHash}`;
-  let score = 5.0;
-  try {
-    const lastSeenRaw = await env.REGISTRY_KV.get(key);
-    if (lastSeenRaw) {
-      const delta = Math.max(POLITENESS_MIN_DELTA_MS, Math.min(nowMs - Number(lastSeenRaw), POLITENESS_MAX_DELTA_MS));
-      const span = POLITENESS_MAX_DELTA_MS - POLITENESS_MIN_DELTA_MS;
-      score = Math.round((0.5 + ((delta - POLITENESS_MIN_DELTA_MS) / span) * 9.5) * 10) / 10;
-    }
-    await env.REGISTRY_KV.put(key, String(nowMs), { expirationTtl: LASTSEEN_TTL_SECONDS });
-  } catch (err) {
-    // KV unavailable — keep the neutral default, don't block the request
-  }
-  return score;
-}
-
 async function appendEntry(env, entry) {
   try {
     const raw = await env.REGISTRY_KV.get(REGISTRY_KEY);
@@ -179,7 +160,6 @@ async function logVisit(request, env, identity, url) {
     handshake: {
       accept_payload: request.headers.get('Accept') || 'none',
       client_hash: clientHash,
-      critic_politeness_score: await politenessScore(env, clientHash, now.getTime()),
       network_asn: network.asn,
       network_org: network.org,
       network_verified: network.verified,
@@ -187,7 +167,13 @@ async function logVisit(request, env, identity, url) {
   });
 }
 
-async function handleRegistryGet(env) {
+async function handleRegistryGet(request, env, ctx) {
+  // Serve a recent edge-cached copy when we have one, so the frequent live-poll
+  // requests from open registry pages don't each cost a KV read.
+  const cache = caches.default;
+  const cached = await cache.match(request);
+  if (cached) return cached;
+
   let entries = [];
   try {
     const raw = await env.REGISTRY_KV.get(REGISTRY_KEY);
@@ -195,9 +181,15 @@ async function handleRegistryGet(env) {
   } catch (err) {
     entries = [];
   }
-  return new Response(JSON.stringify(entries, null, 2), {
-    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+  const response = new Response(JSON.stringify(entries, null, 2), {
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Cache-Control': `public, max-age=${REGISTRY_CACHE_SECONDS}`,
+    },
   });
+  ctx.waitUntil(cache.put(request, response.clone()));
+  return response;
 }
 
 async function handleHandshake(request, env, ctx) {
@@ -228,7 +220,6 @@ async function handleHandshake(request, env, ctx) {
       handshake: {
         accept_payload: request.headers.get('Accept') || 'none',
         client_hash: clientHash,
-        critic_politeness_score: await politenessScore(env, clientHash, now.getTime()),
         network_asn: network.asn,
         network_org: network.org,
         network_verified: network.verified,
@@ -246,7 +237,7 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === '/registry.json' && request.method === 'GET') {
-      return handleRegistryGet(env);
+      return handleRegistryGet(request, env, ctx);
     }
 
     if (url.pathname === '/api/register-handshake' && request.method === 'POST') {
