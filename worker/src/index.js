@@ -13,6 +13,24 @@ const KNOWN_BOTS = [
   [/SemrushBot/i, 'semrushbot'],
 ];
 
+// Expected network operator for each known bot identity, matched against
+// Cloudflare's real ASN lookup (request.cf.asOrganization) — this can't be
+// spoofed via a User-Agent header, unlike identity classification above.
+const EXPECTED_ORG_PATTERNS = {
+  gptbot: /openai/i,
+  claudebot: /anthropic/i,
+  googlebot: /google/i,
+  bingbot: /microsoft/i,
+  perplexitybot: /perplexity/i,
+  ccbot: /common ?crawl/i,
+  applebot: /apple/i,
+  duckduckbot: /duckduckgo/i,
+  yandexbot: /yandex/i,
+  facebookbot: /facebook|meta platforms/i,
+  ahrefsbot: /ahrefs/i,
+  semrushbot: /semrush/i,
+};
+
 const REGISTRY_KEY = 'registry';
 const MAX_ENTRIES = 500;
 const LASTSEEN_TTL_SECONDS = 60 * 60 * 24 * 30;
@@ -50,6 +68,17 @@ function randomRegistryId() {
   const bytes = new Uint8Array(3);
   crypto.getRandomValues(bytes);
   return '0x' + [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Cross-checks the UA-claimed identity against the network it actually arrived from.
+// verified is null when there's no known-org expectation for this identity, or Cloudflare
+// couldn't resolve the ASN — true/false only when there's something real to compare.
+function networkInfo(request, identity) {
+  const asn = request.cf?.asn ?? null;
+  const org = request.cf?.asOrganization || null;
+  const pattern = EXPECTED_ORG_PATTERNS[identity];
+  const verified = pattern && org ? pattern.test(org) : null;
+  return { asn, org, verified };
 }
 
 // Scores crawl courtesy from real elapsed time since this client's last request.
@@ -91,6 +120,7 @@ async function logVisit(request, env, identity, url) {
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
   const now = new Date();
   const clientHash = await hashClient(ip, ua);
+  const network = networkInfo(request, identity);
   await appendEntry(env, {
     registry_id: randomRegistryId(),
     identity,
@@ -104,6 +134,9 @@ async function logVisit(request, env, identity, url) {
       accept_payload: request.headers.get('Accept') || 'none',
       client_hash: clientHash,
       critic_politeness_score: await politenessScore(env, clientHash, now.getTime()),
+      network_asn: network.asn,
+      network_org: network.org,
+      network_verified: network.verified,
     },
   });
 }
@@ -135,9 +168,11 @@ async function handleHandshake(request, env, ctx) {
     const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
     const now = new Date();
     const clientHash = await hashClient(ip, ua);
+    const identity = classifyIdentity(ua) || 'unknown-agent';
+    const network = networkInfo(request, identity);
     ctx.waitUntil(appendEntry(env, {
       registry_id: randomRegistryId(),
-      identity: classifyIdentity(ua) || 'unknown-agent',
+      identity,
       timestamp: now.toISOString(),
       trajectory: {
         entry_path: '/api/register-handshake',
@@ -148,6 +183,9 @@ async function handleHandshake(request, env, ctx) {
         accept_payload: request.headers.get('Accept') || 'none',
         client_hash: clientHash,
         critic_politeness_score: await politenessScore(env, clientHash, now.getTime()),
+        network_asn: network.asn,
+        network_org: network.org,
+        network_verified: network.verified,
         autonomous_signature: signature,
         verified_autonomous: true,
       },
