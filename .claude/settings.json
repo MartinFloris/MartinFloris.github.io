@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+
+  "permissions": {
+    "allow": [
+      "Bash(gh run *)",
+      "PowerShell(gh run list --workflow=static.yml --limit 5)",
+      "Bash(git push)",
+      "Bash(git push origin main)"
+    ],
+    "deny": [
+      "Bash(git push --force *)",
+      "Bash(git push -f *)"
+    ]
+  },
+
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [".claude/hooks/block-dangerous-commands.js"],
+            "timeout": 10,
+            "statusMessage": "Safety check"
+          }
+        ]
+      }
+    ]
+  }
+}

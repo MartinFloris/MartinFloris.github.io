@@ -1,0 +1,30 @@
+# ---------------------------------------------------------------------------
+# Secrets — NEVER commit these. This repo is public; a leaked token is live.
+# ---------------------------------------------------------------------------
+# Cloudflare Worker local secrets (API tokens, KV creds, etc.)
+.dev.vars
+.dev.vars.*
+# Generic environment / secret files
+.env
+.env.*
+!.env.example          # ...but do keep a committed template, if you make one
+# Wrangler local state & cache (can contain your account id)
+.wrangler/
+
+# ---------------------------------------------------------------------------
+# Machine-specific Claude Code settings (yours only, not shared with the repo)
+# ---------------------------------------------------------------------------
+.claude/settings.local.json
+
+# ---------------------------------------------------------------------------
+# Dependencies — this static site needs none, but ignore them if they appear
+# ---------------------------------------------------------------------------
+node_modules/
+
+# ---------------------------------------------------------------------------
+# OS / editor junk
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
