@@ -328,6 +328,7 @@ button:disabled { background: #ccc; cursor: not-allowed; }
 }
 .registry-table {
     width: 100%;
+    table-layout: fixed;
     border-collapse: collapse;
     font-size: 13px;
 }
@@ -336,7 +337,7 @@ button:disabled { background: #ccc; cursor: not-allowed; }
     text-align: left;
     padding: 8px 12px;
     border-bottom: 1px solid var(--border-color);
-    white-space: nowrap;
+    overflow-wrap: break-word;
 }
 .registry-table th {
     color: var(--text-subtle);
@@ -344,6 +345,15 @@ button:disabled { background: #ccc; cursor: not-allowed; }
 }
 .registry-table td {
     color: var(--text-main);
+}
+.registry-table th:nth-child(1), .registry-table td:nth-child(1) { width: 15%; }
+.registry-table th:nth-child(2), .registry-table td:nth-child(2) { width: 15%; }
+.registry-table th:nth-child(3), .registry-table td:nth-child(3) { width: 12%; }
+.registry-table th:nth-child(4), .registry-table td:nth-child(4) { width: 30%; }
+.registry-table th:nth-child(5), .registry-table td:nth-child(5) { width: 28%; }
+.registry-table .visit-date {
+    color: var(--text-subtle);
+    font-size: 11px;
 }
 
 /* --- Footer --- */

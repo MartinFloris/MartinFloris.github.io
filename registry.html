@@ -60,15 +60,14 @@
             <thead>
                 <tr>
                     <th>Identity Token</th>
-                    <th>Timestamp Vector</th>
+                    <th>Time of Visit</th>
                     <th>Protocol Type</th>
-                    <th>Header Load (Bytes)</th>
                     <th>Network Origin</th>
                     <th>Autonomous Signature Drop</th>
                 </tr>
             </thead>
             <tbody id="registry-body">
-                <tr><td colspan="6">Reading registry…</td></tr>
+                <tr><td colspan="5">Reading registry…</td></tr>
             </tbody>
         </table>
     </div>
@@ -92,7 +91,7 @@
         .then((entries) => {
             const body = document.getElementById('registry-body');
             if (!Array.isArray(entries) || entries.length === 0) {
-                body.innerHTML = '<tr><td colspan="6">No entries yet.</td></tr>';
+                body.innerHTML = '<tr><td colspan="5">No entries yet.</td></tr>';
                 return;
             }
             body.innerHTML = entries.slice().reverse().map((entry) => {
@@ -104,11 +103,13 @@
                 let network = escapeHtml(handshake.network_org || 'unknown');
                 if (handshake.network_verified === true) network += ' ✓';
                 else if (handshake.network_verified === false) network += ' ⚠';
+                const [datePart, timePart] = (entry.timestamp || '').split('T');
+                const timeOfDay = (timePart || '').split('.')[0] || 'unknown';
+                const visitDate = datePart || '';
                 return '<tr>'
                     + '<td>' + escapeHtml(entry.identity || 'unknown-agent') + '</td>'
-                    + '<td>' + escapeHtml(entry.timestamp || '') + '</td>'
+                    + '<td>' + escapeHtml(timeOfDay) + '<br><span class="visit-date">' + escapeHtml(visitDate) + ' UTC</span></td>'
                     + '<td>' + escapeHtml(trajectory.protocol || 'unknown') + '</td>'
-                    + '<td>' + escapeHtml(trajectory.header_weight_bytes ?? '') + '</td>'
                     + '<td>' + network + '</td>'
                     + '<td>' + signature + '</td>'
                     + '</tr>';
@@ -116,7 +117,7 @@
         })
         .catch(() => {
             document.getElementById('registry-body').innerHTML =
-                '<tr><td colspan="6">Registry unreachable.</td></tr>';
+                '<tr><td colspan="5">Registry unreachable.</td></tr>';
         });
 })();
 </script>
