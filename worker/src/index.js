@@ -212,6 +212,9 @@ export default {
       ctx.waitUntil(logVisit(request, env, identity, url));
     }
 
-    return fetch(request);
+    // Bypass Cloudflare's edge cache on the way to origin — this is a small,
+    // actively-changing site, so always-fresh content matters more than the
+    // performance win from caching static assets at the edge.
+    return fetch(request, { cf: { cacheTtl: 0, cacheEverything: false } });
   },
 };
