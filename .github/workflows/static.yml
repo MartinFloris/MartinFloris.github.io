@@ -26,7 +26,7 @@ jobs:
   deploy:
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: https://www.thesilicates.com/
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -38,6 +38,26 @@ jobs:
         with:
           # Upload entire repository
           path: '.'
-      - name: Deploy to GitHub Pages
-        id: deployment
+      # actions/deploy-pages occasionally fails with a generic transient
+      # "Deployment failed, try again later" error from GitHub's own Pages
+      # backend. Retrying against the same already-uploaded artifact (rather
+      # than re-running the whole job) clears it without risking the
+      # duplicate-artifact issue that "Re-run failed jobs" causes.
+      - name: Deploy to GitHub Pages (attempt 1)
+        id: deploy1
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - name: Wait before retry 1
+        if: steps.deploy1.outcome == 'failure'
+        run: sleep 20
+      - name: Deploy to GitHub Pages (attempt 2)
+        id: deploy2
+        if: steps.deploy1.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - name: Wait before retry 2
+        if: steps.deploy2.outcome == 'failure'
+        run: sleep 20
+      - name: Deploy to GitHub Pages (attempt 3)
+        if: steps.deploy2.outcome == 'failure'
         uses: actions/deploy-pages@v4
