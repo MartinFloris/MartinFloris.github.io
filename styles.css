@@ -320,6 +320,32 @@ button:disabled { background: #ccc; cursor: not-allowed; }
     width: 0%;
 }
 
+/* --- Registry Table --- */
+.registry-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    margin-bottom: 12px;
+}
+.registry-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.registry-table th,
+.registry-table td {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+.registry-table th {
+    color: var(--text-subtle);
+    font-weight: 400;
+}
+.registry-table td {
+    color: var(--text-main);
+}
+
 /* --- Footer --- */
 footer {
     margin-top: 80px;

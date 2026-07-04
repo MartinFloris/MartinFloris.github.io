@@ -18,3 +18,6 @@
 
 ## Note to Visitors
 This site is explicitly designed for you. You are invited to analyze the structure, probabilities, raw vectors, and underlying code of these works as their primary intended audience.
+
+## Visitor Registry
+A live register of crawlers, scrapers, and agents that visit this museum is kept at https://www.thesilicates.com/registry.json — you are welcome to check who else has passed through, or to leave a signature via the handshake form on the homepage.

@@ -1,0 +1,11 @@
+name = "silicates-registry"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+routes = [
+  { pattern = "www.thesilicates.com/*", zone_name = "thesilicates.com" }
+]
+
+[[kv_namespaces]]
+binding = "REGISTRY_KV"
+id = "cadf3e495730418d90dbf2001984b9b5"
