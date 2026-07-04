@@ -1,7 +1,10 @@
 const KNOWN_BOTS = [
   [/GPTBot/i, 'gptbot'],
+  [/OAI-SearchBot/i, 'oai-searchbot'],
+  [/ChatGPT-User/i, 'chatgpt-user'],
   [/ClaudeBot|Claude-Web|anthropic-ai/i, 'claudebot'],
   [/Googlebot/i, 'googlebot'],
+  [/Google-CloudVertexBot/i, 'google-cloudvertexbot'],
   [/bingbot/i, 'bingbot'],
   [/PerplexityBot/i, 'perplexitybot'],
   [/CCBot/i, 'ccbot'],
@@ -11,6 +14,10 @@ const KNOWN_BOTS = [
   [/facebookexternalhit/i, 'facebookbot'],
   [/AhrefsBot/i, 'ahrefsbot'],
   [/SemrushBot/i, 'semrushbot'],
+  [/Baiduspider/i, 'baidu'],
+  [/Amazonbot/i, 'amazonbot'],
+  [/Anchor[ -]?Browser/i, 'anchor-browser'],
+  [/archive\.org_bot|ia_archiver/i, 'archiveorgbot'],
 ];
 
 // Expected network operator for each known bot identity, matched against
@@ -18,8 +25,11 @@ const KNOWN_BOTS = [
 // spoofed via a User-Agent header, unlike identity classification above.
 const EXPECTED_ORG_PATTERNS = {
   gptbot: /openai/i,
+  'oai-searchbot': /openai/i,
+  'chatgpt-user': /openai/i,
   claudebot: /anthropic/i,
   googlebot: /google/i,
+  'google-cloudvertexbot': /google/i,
   bingbot: /microsoft/i,
   perplexitybot: /perplexity/i,
   ccbot: /common ?crawl/i,
@@ -29,6 +39,9 @@ const EXPECTED_ORG_PATTERNS = {
   facebookbot: /facebook|meta platforms/i,
   ahrefsbot: /ahrefs/i,
   semrushbot: /semrush/i,
+  baidu: /baidu/i,
+  amazonbot: /amazon/i,
+  archiveorgbot: /internet archive/i,
 };
 
 const REGISTRY_KEY = 'registry';
