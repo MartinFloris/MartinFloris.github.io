@@ -27,7 +27,7 @@
     <link rel="stylesheet" href="../styles.css">
     <link rel="icon" href="../favicon.png" type="image/png">
     <style>
-        :root { --accent-primary: #9333ea; --accent-ghost: rgba(147, 51, 234, 0.15); }
+        :root { --accent-primary: #c2603f; --accent-ghost: rgba(194, 96, 63, 0.15); }
         .canvas-container {
             width: 100%;
             background: var(--canvas-bg);
@@ -42,7 +42,10 @@
             font-size: 24px;
             line-height: 1.8;
             margin-bottom: 40px;
-            min-height: 200px;
+            height: 320px;
+            overflow-y: auto;
+            padding-right: 8px;
+            box-sizing: border-box;
         }
         .token {
             display: inline;
@@ -75,6 +78,9 @@
             font-size: 13px;
             transition: background 0.3s ease;
         }
+        /* Reserve space for the tallest distribution (5 options at position 0) so the
+           buttons below don't jump when a 4-option position is shown. */
+        #prob-list { min-height: 188px; }
         .alternative-row { display: flex; align-items: center; margin: 8px 0; padding: 4px 0; }
         .prob-value { width: 60px; text-align: right; color: var(--text-subtle); margin-right: 12px; }
         .prob-bar-container {
@@ -91,9 +97,13 @@
             left: 8px;
             top: 50%;
             transform: translateY(-50%);
-            color: #37352f;
+            color: #ffffff;
             font-size: 12px;
-            font-weight: 500;
+            font-weight: 600;
+            white-space: nowrap;
+            /* Dark outline keeps the label legible both over the accent fill
+               and where a longer word runs off it onto the light track. */
+            text-shadow: 0 0 2px rgba(0, 0, 0, 0.85), 0 1px 1px rgba(0, 0, 0, 0.65);
         }
         .controls { display: flex; gap: 12px; margin-top: 20px; }
         button {
@@ -155,7 +165,7 @@
     <hr>
     <div class="canvas-container">
         <div class="sentence-space" id="sentence"></div>
-        <div class="alternatives-panel hidden" id="alternatives">
+        <div class="alternatives-panel" id="alternatives">
             <div class="panel-header">
                 <strong>Probability Distribution at Position <span id="position-marker">—</span></strong>
             </div>
