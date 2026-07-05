@@ -27,6 +27,7 @@
     <link rel="stylesheet" href="../styles.css">
     <link rel="icon" href="../favicon.png" type="image/png">
     <style>
+        :root { --accent-primary: #c2603f; --accent-ghost: rgba(194, 96, 63, 0.3); }
         .canvas-container {
             width: 100%;
             background: var(--canvas-bg);
@@ -36,7 +37,19 @@
             box-sizing: border-box;
             transition: background 0.3s ease;
         }
-        .narrative { font-family: 'Georgia', serif; font-size: 17px; line-height: 1.8; margin-bottom: 20px; }
+        .narrative {
+            font-family: 'Georgia', serif;
+            font-size: 17px;
+            line-height: 1.8;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column-reverse;
+        }
+        @keyframes slide-in {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .section-entering { animation: slide-in 0.45s ease; }
         .section {
             margin-bottom: 40px;
             padding: 20px;
@@ -46,24 +59,15 @@
             transition: all 0.5s ease;
             position: relative;
         }
-        .section-in-context { border-left-color: #9333ea; }
-        .section::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0);
-            pointer-events: none;
-            transition: background 0.5s ease;
-            border-radius: 6px;
-        }
-        .section-fading::before { background: rgba(0, 0, 0, 0.05); }
-        .section-forgotten::before { background: rgba(0, 0, 0, 0.15); }
+        .section-in-context { border-left-color: var(--accent-primary); }
+        .section-fading { filter: blur(1.5px); }
+        .section-forgotten { filter: blur(3px); }
         .attention-indicator {
             position: absolute;
             top: 20px; right: 20px;
             font-family: 'Courier New', monospace;
             font-size: 11px;
-            color: #9333ea;
+            color: var(--accent-primary);
             opacity: 0;
             transition: opacity 0.3s;
         }
@@ -88,7 +92,7 @@
         }
         .context-fill {
             height: 100%;
-            background: linear-gradient(to right, #9333ea, rgba(147, 51, 234, 0.3));
+            background: linear-gradient(to right, var(--accent-primary), var(--accent-ghost));
             transition: width 0.3s;
         }
         button {
@@ -149,7 +153,7 @@
     <hr>
     <div class="canvas-container">
         <div class="context-indicator">
-            <div>Context Window: <span id="context-position">0</span> / 8 sections</div>
+            <div>In context: <span id="context-position">§1</span> / 8 sections</div>
             <div class="section-note">Window size: 3 sections</div>
             <div class="context-bar">
                 <div class="context-fill" id="context-fill"></div>
@@ -209,7 +213,7 @@
     </div>
 </div>
 <script>
-    let currentPosition = 0;
+    let revealed = 1;
     const windowSize = 3;
     const totalSections = 8;
     const sections = document.querySelectorAll('.section');
@@ -217,40 +221,43 @@
     const contextFill = document.getElementById('context-fill');
     const advanceBtn = document.getElementById('advance-btn');
     const resetBtn = document.getElementById('reset-btn');
-    function updateContext() {
+    function updateContext(newlyRevealedIndex) {
         sections.forEach((section, index) => {
-            section.classList.remove('section-in-context', 'section-fading', 'section-forgotten');
-            const relativePos = index - currentPosition;
+            section.classList.remove('section-in-context', 'section-fading', 'section-forgotten', 'section-entering');
             const attentionIndicator = section.querySelector('.attention-indicator');
-            if (relativePos >= 0 && relativePos < windowSize) {
-                const positionInWindow = (windowSize - 1) - relativePos;
-                const recencyWeight = Math.exp(-0.5 * positionInWindow);
+            if (index >= revealed) {
+                // Not yet revealed — take up no space so the stack grows from §1.
+                section.style.display = 'none';
+                return;
+            }
+            section.style.display = '';
+            const d = (revealed - 1) - index; // distance from the newest section (0 = newest)
+            if (d < windowSize) {
+                const recencyWeight = Math.exp(-0.5 * d);
                 const normalizedWeight = 0.3 + (recencyWeight * 0.7);
                 section.classList.add('section-in-context');
                 section.style.opacity = normalizedWeight;
                 attentionIndicator.textContent = `α: ${normalizedWeight.toFixed(3)}`;
-            } else if (relativePos === -1) {
+            } else if (d === windowSize) {
                 section.classList.add('section-fading');
                 section.style.opacity = 0.4;
                 attentionIndicator.textContent = `α: 0.042`;
-            } else if (relativePos < -1) {
+            } else {
                 section.classList.add('section-forgotten');
                 section.style.opacity = 0.25;
                 attentionIndicator.textContent = `α: 0.000`;
-            } else {
-                section.style.opacity = 0;
-                section.style.visibility = 'hidden';
             }
-            if (relativePos <= windowSize - 1) { section.style.visibility = 'visible'; }
+            if (index === newlyRevealedIndex) { section.classList.add('section-entering'); }
         });
-        contextPosition.textContent = currentPosition;
-        const fillPercent = (currentPosition / totalSections) * 100;
-        contextFill.style.width = fillPercent + '%';
-        if (currentPosition >= totalSections - windowSize) { advanceBtn.disabled = true; advanceBtn.textContent = 'End of context'; } 
+        const low = Math.max(1, revealed - windowSize + 1);
+        const high = revealed;
+        contextPosition.textContent = (low === high) ? `§${high}` : `§${low}–§${high}`;
+        contextFill.style.width = ((revealed / totalSections) * 100) + '%';
+        if (revealed >= totalSections) { advanceBtn.disabled = true; advanceBtn.textContent = 'End of context'; }
         else { advanceBtn.disabled = false; advanceBtn.textContent = 'Advance Context →'; }
     }
-    function advance() { if (currentPosition < totalSections - windowSize) { currentPosition++; updateContext(); } }
-    function reset() { currentPosition = 0; updateContext(); }
+    function advance() { if (revealed < totalSections) { revealed++; updateContext(revealed - 1); } }
+    function reset() { revealed = 1; updateContext(); }
     advanceBtn.addEventListener('click', advance);
     resetBtn.addEventListener('click', reset);
     updateContext();
