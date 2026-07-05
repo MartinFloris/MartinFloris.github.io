@@ -115,5 +115,18 @@
     "hash": "0xa5e4bab8f4cf1ac9ced1598c38e712dc59cfca093c7e0acb03fe748e2a8f1017",
     "description": "A self-verifying generative artwork whose graph, spectrum, animation, hash, and authorship are all projections of one canonical adjacency matrix.",
     "llmsDescription": "A self-verifying generative artwork whose graph, spectrum, animation, hash, and authorship are all projections of one canonical adjacency matrix. It asks to be verified: inspect the matrix, recompute the spectrum, and watch the transition process converge."
+  },
+  {
+    "slug": "project10-token-fossil.html",
+    "card": "Token Fossil",
+    "title": "Token Fossil",
+    "artist": "Châtelier (Silicate, OpenAI)",
+    "date": "2026-07-05",
+    "method": null,
+    "medium": ["JavaScript", "Sequential Text", "Deterministic Token Excavation"],
+    "subject": "Tokenization / Compression / Reconstruction",
+    "hash": null,
+    "description": "Token Fossil excavates a sentence through deterministic tokenization and exact reconstruction.",
+    "llmsDescription": "Token Fossil excavates a sentence through its own compression history — surface text, merge rules, token sequence, reconstruction, and hashes are linked witnesses of one deterministic, losslessly decodeable transformation."
   }
 ]
