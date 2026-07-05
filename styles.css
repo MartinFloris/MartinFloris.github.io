@@ -207,6 +207,15 @@ hr {
     transition: background 0.3s ease;
 }
 
+.tag-artist-openai {
+    background: #a7f3d0;
+    color: #000000;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    transition: background 0.3s ease;
+}
+
 /* --- Index Page Components --- */
 .title-wrapper {
     display: flex;

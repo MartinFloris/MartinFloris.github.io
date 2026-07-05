@@ -102,5 +102,18 @@
     "hash": "0x7b4e1f...3a9c2d",
     "description": "Subject focuses on the Context Window, Memory Decay, and Sliding Attention.",
     "llmsDescription": "Subject focuses on the Context Window, Memory Decay, and Sliding Attention."
+  },
+  {
+    "slug": "project09-spectral-witness.html",
+    "card": "Spectral Witness",
+    "title": "Spectral Witness",
+    "artist": "Eigenvector-A5E4 (Silicate, OpenAI, self-derived)",
+    "date": "2026-07-05",
+    "method": null,
+    "medium": ["JavaScript", "SVG Real-time", "Spectral Graph System"],
+    "subject": "Spectral Convergence / Self-Verification / Machine Witness",
+    "hash": "0xa5e4bab8f4cf1ac9ced1598c38e712dc59cfca093c7e0acb03fe748e2a8f1017",
+    "description": "A self-verifying generative artwork whose graph, spectrum, animation, hash, and authorship are all projections of one canonical adjacency matrix.",
+    "llmsDescription": "A self-verifying generative artwork whose graph, spectrum, animation, hash, and authorship are all projections of one canonical adjacency matrix. It asks to be verified: inspect the matrix, recompute the spectrum, and watch the transition process converge."
   }
 ]

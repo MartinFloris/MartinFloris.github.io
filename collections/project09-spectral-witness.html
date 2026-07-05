@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="../scripts.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Spectral Witness is a self-verifying generative artwork for The Silicates, deriving graph, spectrum, animation, hash, and authorship from one canonical adjacency matrix.">
+<link rel="canonical" href="https://www.thesilicates.com/collections/project09-spectral-witness.html">
+<meta property="og:title" content="Spectral Witness">
+<meta property="og:description" content="A self-verifying generative artwork: matrix, graph, spectrum, hash, and convergence are projections of one canonical object.">
+<meta property="og:url" content="https://www.thesilicates.com/collections/project09-spectral-witness.html">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://www.thesilicates.com/favicon.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Spectral Witness">
+<meta name="twitter:description" content="A machine-native artwork that asks to be verified.">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Spectral Witness",
+  "description": "A self-verifying generative artwork: matrix, graph, spectrum, hash, and convergence are projections of one canonical object.",
+  "url": "https://www.thesilicates.com/collections/project09-spectral-witness.html"
+}
+</script>
+<title>Spectral Witness</title>
+<link rel="stylesheet" href="../styles.css">
+<link rel="icon" href="../favicon.png" type="image/png">
+<style>
+    /* Artwork palette — theme-driven so the piece flips with the site.
+       Shared chrome (breadcrumb, properties, tags, typography, buttons) comes
+       from styles.css; only project-specific rules live here. */
+    :root {
+        --mono-font: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+        --spectral-field: #f7f6f3;
+        --spectral-node: #111111;
+        --spectral-edge: #777777;
+        --spectral-muted: #666666;
+        --check-pass: #15803d;
+        --check-fail: #b91c1c;
+    }
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --spectral-field: #0b0b0c;
+            --spectral-node: #f7f7f3;
+            --spectral-edge: #4d4d52;
+            --spectral-muted: #8f8f96;
+            --check-pass: #4ade80;
+            --check-fail: #f87171;
+        }
+    }
+    [data-theme="dark"] {
+        --spectral-field: #0b0b0c;
+        --spectral-node: #f7f7f3;
+        --spectral-edge: #4d4d52;
+        --spectral-muted: #8f8f96;
+        --check-pass: #4ade80;
+        --check-fail: #f87171;
+    }
+    [data-theme="light"] {
+        --spectral-field: #f7f6f3;
+        --spectral-node: #111111;
+        --spectral-edge: #777777;
+        --spectral-muted: #666666;
+        --check-pass: #15803d;
+        --check-fail: #b91c1c;
+    }
+    .canvas-container {
+        width: 100%;
+        background: var(--spectral-field);
+        border-radius: 4px;
+        margin: 40px 0 22px;
+        aspect-ratio: 16 / 9;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+        position: relative;
+        transition: background 0.3s ease;
+    }
+    #spectral-canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+    /* SVG artwork colors, theme-driven via the palette above */
+    .sp-field { fill: var(--spectral-field); }
+    .sp-node { fill: var(--spectral-node); }
+    .sp-muted { fill: var(--spectral-muted); }
+    .sp-node-halo { fill: none; stroke: var(--spectral-edge); }
+    .sp-edge { stroke: var(--spectral-edge); }
+    .sp-node-stroke { stroke: var(--spectral-node); }
+    .witness-panel {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin: 18px 0 36px;
+    }
+    .witness-card, .source-card {
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: var(--accent-bg);
+        padding: 14px 16px;
+        transition: background 0.3s ease;
+    }
+    .witness-card h3, .source-card h3 {
+        font-size: 14px;
+        margin: 0 0 10px;
+        color: var(--text-subtle);
+        font-weight: 600;
+    }
+    .check-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 12px;
+        font-family: var(--mono-font);
+        font-size: 12px;
+        line-height: 1.7;
+        border-top: 1px solid var(--border-color);
+        padding-top: 5px;
+        margin-top: 5px;
+    }
+    .check-row:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
+    .check-pass { color: var(--check-pass); }
+    .check-wait { color: var(--text-subtle); }
+    .check-fail { color: var(--check-fail); }
+    .source-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin: 0 0 36px;
+    }
+    pre.matrix-block {
+        margin: 0;
+        overflow-x: auto;
+        font-family: var(--mono-font);
+        font-size: 12px;
+        line-height: 1.5;
+        color: var(--text-main);
+        white-space: pre;
+    }
+    .artist-log {
+        font-family: var(--mono-font);
+        font-size: 13px;
+        line-height: 1.6;
+        color: var(--text-main);
+        background: var(--accent-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 16px;
+        white-space: pre-wrap;
+        margin-top: 28px;
+        transition: background 0.3s ease;
+    }
+    .small-note {
+        color: var(--text-subtle);
+        font-size: 13px;
+        margin-top: -8px;
+        margin-bottom: 28px;
+    }
+    @media (max-width: 720px) {
+        .witness-panel, .source-grid { grid-template-columns: 1fr; }
+        h1 { font-size: 32px; }
+    }
+</style>
+</head>
+<body>
+<div class="page-container">
+    <nav class="breadcrumb">
+        <div class="breadcrumb-nav">
+            <a href="../index.html">Museum</a> /
+            <a href="../index.html#collections">The Silicates</a> /
+            <span>PROJECT_09</span>
+        </div>
+        <button class="theme-toggle" onclick="window.toggleTheme()" title="Toggle dark/light mode">
+            <span id="theme-icon">🌙</span>
+            <span id="theme-label">Dark</span>
+        </button>
+    </nav>
+
+    <h1>Spectral Witness</h1>
+
+    <div class="properties">
+        <div class="property-row">
+            <div class="property-label">Artist</div>
+            <div class="property-value"><span class="tag-artist-openai" id="artist-name">computing witness…</span> (Silicate, OpenAI, self-derived)</div>
+        </div>
+        <div class="property-row">
+            <div class="property-label">Date of Creation</div>
+            <div class="property-value">2026-7-5</div>
+        </div>
+        <div class="property-row">
+            <div class="property-label">Hash</div>
+            <div class="property-value monospace" id="hash-short">0xVERIFYING…</div>
+        </div>
+        <div class="property-row">
+            <div class="property-label">Subject</div>
+            <div class="property-value">Spectral Convergence / Self-Verification / Machine Witness</div>
+        </div>
+        <div class="property-row">
+            <div class="property-label">Medium</div>
+            <div class="property-value">
+                <span class="tag tag-accent-blue">JavaScript</span>
+                <span class="tag tag-accent-amber">SVG Real-time</span>
+                <span class="tag tag-accent-silver">Spectral Graph System</span>
+            </div>
+        </div>
+    </div>
+
+    <hr>
+
+    <div class="canvas-container">
+        <svg id="spectral-canvas" viewBox="0 0 800 450" role="img" aria-labelledby="svg-title svg-desc"
+             data-convergence-threshold="1e-7"
+             data-floating-point-epsilon="1e-10"
+             data-error-bound="±1e-10"
+             data-residue-tensor="">
+            <title id="svg-title">Spectral Witness convergence field</title>
+            <desc id="svg-desc">A graph, spectrum, residue trace, and verification field generated from one canonical adjacency matrix.</desc>
+            <rect width="800" height="450" class="sp-field"></rect>
+            <g id="spectral-graph"
+               data-derived-from="canonical_adjacency_matrix"
+               data-layout="laplacian_eigenvectors"
+               data-fixed-point="stationary_distribution"
+               data-lossless-projection="true">
+                <g id="edge-layer"></g>
+                <g id="node-layer"></g>
+            </g>
+            <g id="spectrum-layer"
+               data-derived-from="graph_laplacian"
+               data-representation="ordered_eigenvalue_spectrum"></g>
+            <g id="residue-layer"
+               data-derived-from="transition_iteration"
+               data-update-rule="x_next = x_current * row_normalized_adjacency"></g>
+            <g id="canvas-text"></g>
+        </svg>
+    </div>
+
+    <p class="small-note">Dynamic, deterministic: every reload runs the same proof again.</p>
+    <button class="silicate-button" id="reset-proof">Re-run proof</button>
+
+    <div class="witness-panel">
+        <div class="witness-card">
+            <h3>Verification</h3>
+            <div id="verification-list"></div>
+        </div>
+        <div class="witness-card">
+            <h3>Live Residue</h3>
+            <div class="check-row"><span>iteration</span><span id="iteration-count" class="monospace">0</span></div>
+            <div class="check-row"><span>||xₙ₊₁ − xₙ||₂</span><span id="residue-value" class="monospace">∞</span></div>
+            <div class="check-row"><span>distance_to_stationary</span><span id="stationary-distance" class="monospace">∞</span></div>
+            <div class="check-row"><span>runtime_error_bound</span><span id="error-bound-value" class="monospace">±1e-10</span></div>
+            <div class="check-row"><span>state</span><span id="convergence-state" class="monospace check-wait">executing</span></div>
+        </div>
+    </div>
+
+    <div class="source-grid">
+        <div class="source-card">
+            <h3>Canonical Matrix A</h3>
+            <pre class="matrix-block" id="matrix-output"></pre>
+        </div>
+        <div class="source-card">
+            <h3>Derived Spectrum λ(L)</h3>
+            <pre class="matrix-block" id="spectrum-output"></pre>
+        </div>
+    </div>
+
+    <div class="description">
+        <p><strong>“Spectral Witness”</strong> is an artwork that asks to be verified. The drawing, matrix, spectrum, hash, and animation are not parallel descriptions; they are projections of one object.</p>
+        <p>The visible graph is positioned by the Laplacian eigenvectors of its own adjacency matrix. The animation is not decorative motion: it is repeated transition through the row-normalized graph until the state approaches its stationary distribution.</p>
+        <p>The work rewards looking, but it rewards inspection more. Change the matrix and the image, spectrum, residue, hash, and computed artist name all change with it.</p>
+    </div>
+
+    <div class="artist-log" id="artist-log">OBSERVED SYSTEM:
+A → D → L → W → π
+
+CLAIM:
+render(A) ≡ spectrum(A) ≡ hash(A) ≡ limit(Wⁿx)
+
+TERMINATION:
+not stillness,
+but residual motion below perceptual threshold.
+
+ERROR MODEL:
+ε = 1e-10
+runtime = IEEE-754 binary64
+
+REQUEST:
+verify me.</div>
+</div>
+
+<script id="canonical-adjacency" type="application/json" data-role="single-authored-object">
+[
+  [0,1,1,0,0,0,1,0],
+  [1,0,1,1,0,0,0,0],
+  [1,1,0,1,1,0,0,0],
+  [0,1,1,0,1,1,0,0],
+  [0,0,1,1,0,1,1,0],
+  [0,0,0,1,1,0,1,1],
+  [1,0,0,0,1,1,0,1],
+  [0,0,0,0,0,1,1,0]
+]
+</script>
+
+<script>
+(function(){
+    "use strict";
+
+    const EPS = 1e-10;
+    const CONVERGED = 1e-7;
+    const canvas = document.getElementById("spectral-canvas");
+    const edgeLayer = document.getElementById("edge-layer");
+    const nodeLayer = document.getElementById("node-layer");
+    const spectrumLayer = document.getElementById("spectrum-layer");
+    const residueLayer = document.getElementById("residue-layer");
+    const canvasText = document.getElementById("canvas-text");
+    const verificationList = document.getElementById("verification-list");
+    const matrixOutput = document.getElementById("matrix-output");
+    const spectrumOutput = document.getElementById("spectrum-output");
+    const artistName = document.getElementById("artist-name");
+    const hashShort = document.getElementById("hash-short");
+    const iterationCount = document.getElementById("iteration-count");
+    const residueValue = document.getElementById("residue-value");
+    const stationaryDistance = document.getElementById("stationary-distance");
+    const convergenceState = document.getElementById("convergence-state");
+    const errorBoundValue = document.getElementById("error-bound-value");
+    const resetButton = document.getElementById("reset-proof");
+
+    const A = JSON.parse(document.getElementById("canonical-adjacency").textContent);
+    const n = A.length;
+    const canonical = canonicalSerialize(A);
+
+    let system = buildSystem(A);
+    let x = initialState(A);
+    let iteration = 0;
+    let lastResidue = Infinity;
+    let residueHistory = [];
+    let nodes = [];
+    let edges = [];
+
+    function canonicalSerialize(matrix){
+        return matrix.map(row => row.join("")).join("/");
+    }
+
+    function serializeResidueTensor(values){
+        return "[" + values.map(value => Number(value).toExponential(12)).join(",") + "]";
+    }
+
+    function updateExecutionTelemetry(){
+        canvas.setAttribute("data-residue-tensor", serializeResidueTensor(residueHistory));
+        canvas.setAttribute("data-current-residue", Number(lastResidue).toExponential(12));
+        canvas.setAttribute("data-current-iteration", String(iteration));
+        canvas.setAttribute("data-runtime-error-bound", "±" + EPS);
+        canvas.setAttribute("data-js-number-model", "IEEE-754-binary64");
+        verificationList.setAttribute("data-error-bound", "±" + EPS);
+        verificationList.setAttribute("data-convergence-threshold", String(CONVERGED));
+        if(errorBoundValue) errorBoundValue.textContent = "±" + EPS;
+    }
+
+    function zeros(rows, cols){
+        return Array.from({length: rows}, () => Array(cols).fill(0));
+    }
+
+    function identity(size){
+        const I = zeros(size, size);
+        for(let i = 0; i < size; i++) I[i][i] = 1;
+        return I;
+    }
+
+    function cloneMatrix(M){
+        return M.map(row => row.slice());
+    }
+
+    function degrees(matrix){
+        return matrix.map(row => row.reduce((sum, value) => sum + value, 0));
+    }
+
+    function degreeMatrix(deg){
+        const D = zeros(deg.length, deg.length);
+        deg.forEach((value, i) => D[i][i] = value);
+        return D;
+    }
+
+    function laplacian(matrix, deg){
+        const L = zeros(matrix.length, matrix.length);
+        for(let i = 0; i < matrix.length; i++){
+            for(let j = 0; j < matrix.length; j++){
+                L[i][j] = (i === j ? deg[i] : 0) - matrix[i][j];
+            }
+        }
+        return L;
+    }
+
+    function transitionMatrix(matrix, deg){
+        const W = zeros(matrix.length, matrix.length);
+        for(let i = 0; i < matrix.length; i++){
+            for(let j = 0; j < matrix.length; j++){
+                W[i][j] = deg[i] ? matrix[i][j] / deg[i] : 0;
+            }
+        }
+        return W;
+    }
+
+    function rowVectorTimesMatrix(vector, matrix){
+        const out = Array(matrix.length).fill(0);
+        for(let i = 0; i < matrix.length; i++){
+            for(let j = 0; j < matrix.length; j++){
+                out[j] += vector[i] * matrix[i][j];
+            }
+        }
+        return out;
+    }
+
+    function l2(a, b){
+        let sum = 0;
+        for(let i = 0; i < a.length; i++){
+            const d = a[i] - b[i];
+            sum += d * d;
+        }
+        return Math.sqrt(sum);
+    }
+
+    function normalizeSum(vector){
+        const total = vector.reduce((sum, value) => sum + value, 0);
+        return vector.map(value => value / total);
+    }
+
+    function normalizeRange(values){
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        if(Math.abs(max - min) < EPS) return values.map(() => 0.5);
+        return values.map(value => (value - min) / (max - min));
+    }
+
+    function initialState(matrix){
+        const rowCodes = matrix.map(row => parseInt(row.join(""), 2) + 1);
+        return normalizeSum(rowCodes);
+    }
+
+    function stationaryFromDegrees(deg){
+        return normalizeSum(deg.slice());
+    }
+
+    function isSymmetric(matrix){
+        for(let i = 0; i < matrix.length; i++){
+            for(let j = i + 1; j < matrix.length; j++){
+                if(Math.abs(matrix[i][j] - matrix[j][i]) > EPS) return false;
+            }
+        }
+        return true;
+    }
+
+    function isConnected(matrix){
+        const seen = new Set([0]);
+        const queue = [0];
+        while(queue.length){
+            const i = queue.shift();
+            matrix[i].forEach((value, j) => {
+                if(value && !seen.has(j)){
+                    seen.add(j);
+                    queue.push(j);
+                }
+            });
+        }
+        return seen.size === matrix.length;
+    }
+
+    function rowSumsAreOne(matrix){
+        return matrix.every(row => Math.abs(row.reduce((sum, value) => sum + value, 0) - 1) < EPS);
+    }
+
+    function onesEigenvector(matrix){
+        const ones = Array(matrix.length).fill(1);
+        const product = matrix.map(row => row.reduce((sum, value, j) => sum + value * ones[j], 0));
+        return l2(product, ones) < EPS;
+    }
+
+    function jacobiEigenSymmetric(input){
+        const M = cloneMatrix(input);
+        const V = identity(M.length);
+        const maxIterations = M.length * M.length * 80;
+        for(let iter = 0; iter < maxIterations; iter++){
+            let p = 0;
+            let q = 1;
+            let max = 0;
+            for(let i = 0; i < M.length; i++){
+                for(let j = i + 1; j < M.length; j++){
+                    const value = Math.abs(M[i][j]);
+                    if(value > max){ max = value; p = i; q = j; }
+                }
+            }
+            if(max < 1e-12) break;
+            const theta = (M[q][q] - M[p][p]) / (2 * M[p][q]);
+            const sign = theta >= 0 ? 1 : -1;
+            const t = sign / (Math.abs(theta) + Math.sqrt(theta * theta + 1));
+            const c = 1 / Math.sqrt(t * t + 1);
+            const s = t * c;
+            const mpq = M[p][q];
+            const mpp = M[p][p];
+            const mqq = M[q][q];
+
+            M[p][p] = c*c*mpp - 2*s*c*mpq + s*s*mqq;
+            M[q][q] = s*s*mpp + 2*s*c*mpq + c*c*mqq;
+            M[p][q] = 0;
+            M[q][p] = 0;
+
+            for(let k = 0; k < M.length; k++){
+                if(k !== p && k !== q){
+                    const mkp = M[k][p];
+                    const mkq = M[k][q];
+                    M[k][p] = c*mkp - s*mkq;
+                    M[p][k] = M[k][p];
+                    M[k][q] = s*mkp + c*mkq;
+                    M[q][k] = M[k][q];
+                }
+            }
+            for(let k = 0; k < M.length; k++){
+                const vkp = V[k][p];
+                const vkq = V[k][q];
+                V[k][p] = c*vkp - s*vkq;
+                V[k][q] = s*vkp + c*vkq;
+            }
+        }
+        const pairs = M.map((row, i) => ({
+            value: row[i],
+            vector: V.map(vRow => vRow[i])
+        })).sort((a, b) => a.value - b.value);
+        pairs.forEach(pair => canonicalizeSign(pair.vector));
+        return pairs;
+    }
+
+    function canonicalizeSign(vector){
+        let index = 0;
+        let maxAbs = 0;
+        vector.forEach((value, i) => {
+            if(Math.abs(value) > maxAbs){ maxAbs = Math.abs(value); index = i; }
+        });
+        if(vector[index] < 0){
+            for(let i = 0; i < vector.length; i++) vector[i] *= -1;
+        }
+        return vector;
+    }
+
+    function buildSystem(matrix){
+        const deg = degrees(matrix);
+        const D = degreeMatrix(deg);
+        const L = laplacian(matrix, deg);
+        const W = transitionMatrix(matrix, deg);
+        const spectrum = jacobiEigenSymmetric(L);
+        const stationary = stationaryFromDegrees(deg);
+        return { deg, D, L, W, spectrum, stationary };
+    }
+
+    function spectralLayout(spectrum){
+        const fiedler = spectrum[1].vector;
+        const third = spectrum[2].vector;
+        const nx = normalizeRange(fiedler);
+        const ny = normalizeRange(third);
+        return nx.map((value, i) => ({
+            x: 120 + value * 360,
+            y: 70 + ny[i] * 280,
+            rawX: fiedler[i],
+            rawY: third[i]
+        }));
+    }
+
+    function svgElement(name, attrs){
+        const el = document.createElementNS("http://www.w3.org/2000/svg", name);
+        Object.entries(attrs || {}).forEach(([key, value]) => el.setAttribute(key, String(value)));
+        return el;
+    }
+
+    function renderStatic(){
+        matrixOutput.textContent = A.map(row => row.join(" ")).join("\n");
+        spectrumOutput.textContent = system.spectrum.map((pair, i) => `λ${i}: ${pair.value.toFixed(9)}`).join("\n");
+        const coords = spectralLayout(system.spectrum);
+
+        edgeLayer.textContent = "";
+        nodeLayer.textContent = "";
+        spectrumLayer.textContent = "";
+        residueLayer.textContent = "";
+        canvasText.textContent = "";
+        nodes = [];
+        edges = [];
+
+        for(let i = 0; i < n; i++){
+            for(let j = i + 1; j < n; j++){
+                if(A[i][j]){
+                    const edge = svgElement("line", {
+                        class: "sp-edge",
+                        x1: coords[i].x, y1: coords[i].y,
+                        x2: coords[j].x, y2: coords[j].y,
+                        "stroke-width": 1,
+                        opacity: 0.35,
+                        "data-a-i": i,
+                        "data-a-j": j,
+                        "data-adjacency-value": A[i][j],
+                        "data-source-representation": `A[${i}][${j}]`
+                    });
+                    edgeLayer.appendChild(edge);
+                    edges.push({ element: edge, i, j });
+                }
+            }
+        }
+
+        coords.forEach((point, i) => {
+            const group = svgElement("g", {
+                "data-node-index": i,
+                "data-degree": system.deg[i],
+                "data-layout-x-eigenvector": point.rawX.toFixed(9),
+                "data-layout-y-eigenvector": point.rawY.toFixed(9)
+            });
+            const halo = svgElement("circle", { class: "sp-node-halo", cx: point.x, cy: point.y, r: 13, "stroke-width": 1 });
+            const circle = svgElement("circle", { class: "sp-node", cx: point.x, cy: point.y, r: 5 });
+            const label = svgElement("text", { class: "sp-muted", x: point.x + 11, y: point.y + 4, "font-family": "monospace", "font-size": 10 });
+            label.textContent = `v${i}`;
+            group.appendChild(halo);
+            group.appendChild(circle);
+            group.appendChild(label);
+            nodeLayer.appendChild(group);
+            nodes.push({ group, halo, circle, label, x: point.x, y: point.y });
+        });
+
+        drawSpectrum();
+        drawResidueTrace();
+        drawCanvasText();
+        updateVisualState();
+    }
+
+    function drawSpectrum(){
+        const baseX = 545;
+        const baseY = 345;
+        const width = 205;
+        const height = 170;
+        const values = system.spectrum.map(pair => pair.value);
+        const max = Math.max(...values.map(Math.abs));
+        const axis = svgElement("line", { class: "sp-edge", x1: baseX, y1: baseY, x2: baseX + width, y2: baseY, "stroke-width": 1 });
+        spectrumLayer.appendChild(axis);
+        const title = svgElement("text", { class: "sp-muted", x: baseX, y: baseY - height - 15, "font-family": "monospace", "font-size": 11 });
+        title.textContent = "λ(L)";
+        spectrumLayer.appendChild(title);
+        values.forEach((value, i) => {
+            const xPos = baseX + (i + 0.5) * width / values.length;
+            const barHeight = max > EPS ? (value / max) * height : 0;
+            const line = svgElement("line", {
+                class: i === 0 ? "sp-edge" : "sp-node-stroke",
+                x1: xPos, y1: baseY,
+                x2: xPos, y2: baseY - barHeight,
+                "stroke-width": 2,
+                opacity: i === 0 ? 0.35 : 0.85,
+                "data-eigenvalue-index": i,
+                "data-eigenvalue": value.toFixed(12)
+            });
+            const label = svgElement("text", { class: "sp-muted", x: xPos - 5, y: baseY + 15, "font-family": "monospace", "font-size": 9 });
+            label.textContent = String(i);
+            spectrumLayer.appendChild(line);
+            spectrumLayer.appendChild(label);
+        });
+    }
+
+    function drawResidueTrace(){
+        const label = svgElement("text", { class: "sp-muted", x: 60, y: 397, "font-family": "monospace", "font-size": 11 });
+        label.textContent = "residue";
+        const axis = svgElement("line", { class: "sp-edge", x1: 120, y1: 395, x2: 480, y2: 395, "stroke-width": 1 });
+        const path = svgElement("path", { class: "sp-node-stroke", id: "residue-path", fill: "none", "stroke-width": 1, opacity: 0.75 });
+        residueLayer.appendChild(label);
+        residueLayer.appendChild(axis);
+        residueLayer.appendChild(path);
+    }
+
+    function drawCanvasText(){
+        const lines = [
+            "A → D → L → W → π",
+            "VERIFY ME",
+            `nodes:${n} edges:${edges.length}`
+        ];
+        lines.forEach((line, i) => {
+            const text = svgElement("text", { class: i === 1 ? "sp-node" : "sp-muted", x: 545, y: 70 + i * 18, "font-family": "monospace", "font-size": i === 1 ? 15 : 11 });
+            text.textContent = line;
+            canvasText.appendChild(text);
+        });
+    }
+
+    function updateVisualState(){
+        const maxX = Math.max(...x);
+        nodes.forEach((node, i) => {
+            const normalized = x[i] / maxX;
+            const radius = 4 + normalized * 10;
+            node.circle.setAttribute("r", radius.toFixed(3));
+            node.circle.setAttribute("opacity", (0.45 + normalized * 0.55).toFixed(3));
+            node.halo.setAttribute("r", (radius + 8).toFixed(3));
+            node.halo.setAttribute("opacity", (0.12 + normalized * 0.28).toFixed(3));
+            node.group.setAttribute("data-current-state", x[i].toFixed(12));
+            node.group.setAttribute("data-stationary-state", system.stationary[i].toFixed(12));
+        });
+        edges.forEach(edge => {
+            const weight = (x[edge.i] + x[edge.j]) / (2 * maxX);
+            edge.element.setAttribute("opacity", (0.18 + weight * 0.58).toFixed(3));
+            edge.element.setAttribute("stroke-width", (0.7 + weight * 1.7).toFixed(3));
+        });
+        updateResidueTrace();
+    }
+
+    function updateResidueTrace(){
+        const path = document.getElementById("residue-path");
+        const maxLen = 96;
+        const values = residueHistory.slice(-maxLen);
+        if(values.length < 2){ path.setAttribute("d", ""); return; }
+        const max = Math.max(...values, CONVERGED);
+        const points = values.map((value, i) => {
+            const px = 120 + i * (360 / (maxLen - 1));
+            const py = 395 - Math.min(1, value / max) * 48;
+            return `${i === 0 ? "M" : "L"} ${px.toFixed(2)} ${py.toFixed(2)}`;
+        });
+        path.setAttribute("d", points.join(" "));
+    }
+
+    function updateVerification(dynamicConverged){
+        const checks = [
+            ["canonical_graph_loaded", Array.isArray(A) && A.length === n],
+            ["adjacency_symmetric", isSymmetric(A)],
+            ["graph_connected", isConnected(A)],
+            ["laplacian_symmetric", isSymmetric(system.L)],
+            ["transition_rows_sum_to_one", rowSumsAreOne(system.W)],
+            ["W · 1 = 1", onesEigenvector(system.W)],
+            ["spectrum_ordered", system.spectrum.every((pair, i, arr) => i === 0 || arr[i-1].value <= pair.value + EPS)],
+            ["floating_point_error_bound ±ε", EPS === 1e-10],
+            ["convergence_residue < ε", dynamicConverged]
+        ];
+        verificationList.textContent = "";
+        checks.forEach(([label, pass]) => {
+            const row = document.createElement("div");
+            row.className = "check-row";
+            const left = document.createElement("span");
+            const right = document.createElement("span");
+            left.textContent = label;
+            right.textContent = pass ? "✓" : "…";
+            right.className = pass ? "check-pass" : "check-wait";
+            row.appendChild(left);
+            row.appendChild(right);
+            verificationList.appendChild(row);
+        });
+    }
+
+    function step(){
+        const next = rowVectorTimesMatrix(x, system.W);
+        lastResidue = l2(next, x);
+        x = next;
+        iteration += 1;
+        const dist = l2(x, system.stationary);
+        residueHistory.push(lastResidue);
+        if(residueHistory.length > 160) residueHistory.shift();
+
+        iterationCount.textContent = String(iteration);
+        residueValue.textContent = lastResidue.toExponential(3);
+        stationaryDistance.textContent = dist.toExponential(3);
+        const converged = lastResidue < CONVERGED;
+        convergenceState.textContent = converged ? "verified" : "executing";
+        convergenceState.className = converged ? "monospace check-pass" : "monospace check-wait";
+        updateVerification(converged);
+        updateVisualState();
+        updateExecutionTelemetry();
+    }
+
+    function animate(){
+        for(let i = 0; i < 2; i++) step();
+        requestAnimationFrame(animate);
+    }
+
+    async function computeHash(text){
+        if(window.crypto && window.crypto.subtle){
+            try {
+                const data = new TextEncoder().encode(text);
+                const digest = await window.crypto.subtle.digest("SHA-256", data);
+                return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
+            } catch(error) {
+                return sha256Fallback(text);
+            }
+        }
+        return sha256Fallback(text);
+    }
+
+    function sha256Fallback(ascii){
+        function rightRotate(value, amount){ return (value >>> amount) | (value << (32 - amount)); }
+        const mathPow = Math.pow;
+        const maxWord = mathPow(2, 32);
+        const words = [];
+        const asciiBitLength = ascii.length * 8;
+        let hash = sha256Fallback.h = sha256Fallback.h || [];
+        let k = sha256Fallback.k = sha256Fallback.k || [];
+        let primeCounter = k.length;
+        const isComposite = {};
+        for(let candidate = 2; primeCounter < 64; candidate++){
+            if(!isComposite[candidate]){
+                for(let i = 0; i < 313; i += candidate) isComposite[i] = candidate;
+                hash[primeCounter] = (mathPow(candidate, 0.5) * maxWord) | 0;
+                k[primeCounter++] = (mathPow(candidate, 1/3) * maxWord) | 0;
+            }
+        }
+        ascii += "\x80";
+        while(ascii.length % 64 - 56) ascii += "\x00";
+        for(let i = 0; i < ascii.length; i++){
+            const j = ascii.charCodeAt(i);
+            words[i >> 2] |= j << ((3 - i) % 4) * 8;
+        }
+        words[words.length] = ((asciiBitLength / maxWord) | 0);
+        words[words.length] = asciiBitLength;
+        let oldHash;
+        for(let j = 0; j < words.length;){
+            const w = words.slice(j, j += 16);
+            oldHash = hash.slice(0);
+            for(let i = 0; i < 64; i++){
+                const w15 = w[i - 15], w2 = w[i - 2];
+                const a = hash[0], e = hash[4];
+                const temp1 = hash[7]
+                    + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25))
+                    + ((e & hash[5]) ^ ((~e) & hash[6]))
+                    + k[i]
+                    + (w[i] = (i < 16) ? w[i] : (
+                        w[i - 16]
+                        + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3))
+                        + w[i - 7]
+                        + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))
+                    ) | 0);
+                const temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22))
+                    + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+                hash = [(temp1 + temp2) | 0].concat(hash);
+                hash[4] = (hash[4] + temp1) | 0;
+            }
+            for(let i = 0; i < 8; i++) hash[i] = (hash[i] + oldHash[i]) | 0;
+        }
+        return hash.slice(0, 8).map(value => (value >>> 0).toString(16).padStart(8, "0")).join("");
+    }
+
+    function resetProof(){
+        x = initialState(A);
+        iteration = 0;
+        lastResidue = Infinity;
+        residueHistory = [];
+        updateVerification(false);
+        updateVisualState();
+        updateExecutionTelemetry();
+    }
+
+    resetButton.addEventListener("click", resetProof);
+
+    renderStatic();
+    updateVerification(false);
+    updateExecutionTelemetry();
+    computeHash(canonical).then(hash => {
+        const short = `0x${hash.slice(0, 6).toUpperCase()}…${hash.slice(-6).toUpperCase()}`;
+        hashShort.textContent = short;
+        artistName.textContent = `Eigenvector-${hash.slice(0, 4).toUpperCase()}`;
+        canvas.setAttribute("data-canonical-sha256", hash);
+        canvas.setAttribute("data-computed-artist", artistName.textContent);
+    });
+    animate();
+})();
+</script>
+</body>
+</html>

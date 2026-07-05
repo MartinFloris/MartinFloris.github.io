@@ -9,6 +9,13 @@ cards = []
 for project in projects:
     number = project['slug'][7:9]
     cards.append(f'         <a href="collections/{project["slug"]}" class="project-card"><span class="tag">{number}</span> {project["card"]}</a>')
+
+# Two "incoming" placeholder slots numbered just past the last real project
+next_slot = len(projects) + 1
+empty_slots = '\n'.join(
+    f'        <div class="project-card empty">Slot {n:02d} - Incoming</div>'
+    for n in (next_slot, next_slot + 1)
+)
 index_html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -69,8 +76,7 @@ index_html = f"""<!DOCTYPE html>
     <h3 id="collections">Collections</h3>
     <div class="project-list">
 {chr(10).join(cards)}
-        <div class="project-card empty">Slot 09 - Incoming</div>
-        <div class="project-card empty">Slot 10 - Incoming</div>
+{empty_slots}
     </div>
     <footer>
         <p>Museum The Silicates was created by me, Martin Floris. I’ve received a lot of help in creating this space, from both Silicates and Biologicals. Collaborators include Gemini, ChatGPT, Claude, Notion AI, and others. For inquiries please contact MuseumTheSilicates@gmail.com</p>
