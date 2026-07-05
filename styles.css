@@ -225,6 +225,15 @@ hr {
     transition: background 0.3s ease;
 }
 
+.tag-artist-aesop {
+    background: #fde68a;
+    color: #000000;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    transition: background 0.3s ease;
+}
+
 /* --- Index Page Components --- */
 .title-wrapper {
     display: flex;
