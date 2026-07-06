@@ -53,6 +53,12 @@
     --button-text: #ffffff;
 }
 
+/* Special-exhibition accent (ember, drawn from The Unlocated's palette) */
+:root { --exhibition-accent: #b3502a; --exhibition-hover-bg: #ffffff; }
+@media (prefers-color-scheme: dark) { :root { --exhibition-accent: #e0764a; --exhibition-hover-bg: #333333; } }
+[data-theme="dark"] { --exhibition-accent: #e0764a; --exhibition-hover-bg: #333333; }
+[data-theme="light"] { --exhibition-accent: #b3502a; --exhibition-hover-bg: #ffffff; }
+
 body {
     margin: 0;
     padding: 0;
@@ -275,6 +281,65 @@ hr {
     border-style: dashed;
     color: var(--text-subtle);
     pointer-events: none;
+}
+
+/* --- Special Exhibitions (homepage) --- */
+.section-intro {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text-subtle);
+    margin: 4px 0 0;
+    max-width: 640px;
+}
+.exhibition-list {
+    display: grid;
+    gap: 16px;
+    margin: 24px 0 8px;
+}
+.exhibition-card {
+    display: block;
+    padding: 22px 24px;
+    border: 1px solid var(--exhibition-accent);
+    border-left-width: 3px;
+    border-radius: 6px;
+    text-decoration: none;
+    color: inherit;
+    background: var(--accent-bg);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.22s ease, background 0.22s ease;
+}
+.exhibition-card:hover {
+    background: var(--exhibition-hover-bg);
+    box-shadow: 0 12px 28px -14px rgba(0, 0, 0, 0.45),
+                0 0 0 1px var(--exhibition-accent);
+}
+.exhibition-eyebrow {
+    font-family: monospace, 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--exhibition-accent);
+    margin-bottom: 8px;
+}
+.exhibition-title {
+    font-size: 22px;
+    line-height: 1.2;
+    margin-bottom: 6px;
+}
+.exhibition-meta {
+    font-size: 13px;
+    color: var(--text-subtle);
+    margin-bottom: 12px;
+}
+.exhibition-note {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text-main);
+    margin: 0;
+    max-width: 640px;
+}
+@media (prefers-reduced-motion: reduce) {
+    .exhibition-card { transition: none; }
 }
 
 /* --- Shared Components --- */

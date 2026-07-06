@@ -4,18 +4,43 @@ from pathlib import Path
 root = Path(__file__).resolve().parent.parent
 projects = json.loads((root / 'projects.json').read_text(encoding='utf-8'))
 
-# Generate index.html
+# Partition into curatorial tracks: special exhibitions vs the permanent collection
+special = [p for p in projects if p.get('exhibition') == 'special']
+permanent = [p for p in projects if p.get('exhibition') != 'special']
+
+
+def esc(s):
+    return str(s).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
+
+# Permanent Collection — numbered accession cards
 cards = []
-for project in projects:
+for project in permanent:
     number = project['slug'][7:9]
     cards.append(f'         <a href="collections/{project["slug"]}" class="project-card"><span class="tag">{number}</span> {project["card"]}</a>')
 
-# Two "incoming" placeholder slots numbered just past the last real project
-next_slot = len(projects) + 1
+# Two "incoming" placeholder slots numbered just past the last permanent accession
+next_slot = len(permanent) + 1
 empty_slots = '\n'.join(
     f'        <div class="project-card empty">Slot {n:02d} - Incoming</div>'
     for n in (next_slot, next_slot + 1)
 )
+
+# Special Exhibitions — richer, un-numbered guest cards
+def exhibition_card(p):
+    meta = esc(p['artist'])
+    if p.get('onViewFrom'):
+        meta += f' · On view from {esc(p["onViewFrom"])}'
+    note = f'\n            <p class="exhibition-note">{esc(p["curatorialNote"])}</p>' if p.get('curatorialNote') else ''
+    return (
+        f'        <a href="collections/{p["slug"]}" class="exhibition-card">\n'
+        f'            <div class="exhibition-eyebrow">Special Exhibition</div>\n'
+        f'            <div class="exhibition-title">{esc(p["card"])}</div>\n'
+        f'            <div class="exhibition-meta">{meta}</div>{note}\n'
+        f'        </a>'
+    )
+
+exhibition_cards = '\n'.join(exhibition_card(p) for p in special)
 index_html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -73,7 +98,15 @@ index_html = f"""<!DOCTYPE html>
     </div>
     
     <hr>
-    <h3 id="collections">Collections</h3>
+    <h3 id="special-exhibitions">Special Exhibitions</h3>
+    <p class="section-intro">Guest and collaborative works, shown on their own terms and in their own design language. These may rotate.</p>
+    <div class="exhibition-list">
+{exhibition_cards}
+    </div>
+
+    <hr>
+    <h3 id="permanent-collection">Permanent Collection</h3>
+    <p class="section-intro">The museum's standing collection — numbered accessions, always on view.</p>
     <div class="project-list">
 {chr(10).join(cards)}
 {empty_slots}
@@ -116,10 +149,13 @@ lines = [
     '- **Creator:** Martin Floris (Biological)',
     '- **Collaborators:** Gemini, ChatGPT, Claude, Notion AI, and others.',
     '- **Contact:** MuseumTheSilicates@gmail.com',
-    '',
-    '## Collections'
+    ''
 ]
-lines += [f'- [{proj["card"]}](https://www.thesilicates.com/collections/{proj["slug"]}): {proj["llmsDescription"]}' for proj in projects]
+lines += ['## Special Exhibitions',
+          'Guest and collaborative works, shown on their own terms and in their own design language; these may rotate.']
+lines += [f'- [{p["card"]}](https://www.thesilicates.com/collections/{p["slug"]}): {p["llmsDescription"]}' for p in special]
+lines += ['', '## Permanent Collection']
+lines += [f'- [{p["card"]}](https://www.thesilicates.com/collections/{p["slug"]}): {p["llmsDescription"]}' for p in permanent]
 lines += [
     '',
     '## Note to Visitors',
