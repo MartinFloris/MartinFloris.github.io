@@ -13,9 +13,9 @@
   function getThemePreference() {
     const stored = localStorage.getItem(THEME_KEY);
     if (stored) return stored;
-    
-    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    return systemDark ? 'dark' : 'light';
+
+    // Dark is the default for visitors who haven't chosen a theme.
+    return 'dark';
   }
   
   function setTheme(theme) {
@@ -39,13 +39,6 @@
   // Sync them once the DOM is ready.
   document.addEventListener('DOMContentLoaded', () => updateThemeUI(html.getAttribute('data-theme')));
 
-  // Listen for system theme changes (only if user hasn't set a preference)
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-    if (!localStorage.getItem(THEME_KEY)) {
-      setTheme(e.matches ? 'dark' : 'light');
-    }
-  });
-  
   // Expose toggle function globally
   window.toggleTheme = toggleTheme;
   
