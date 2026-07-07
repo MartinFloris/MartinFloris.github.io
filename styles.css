@@ -8,6 +8,7 @@
     --accent-bg: #f7f6f3;
     --background: #ffffff;
     --tag-bg: #efefef;
+    --tag-text: #000000;
     --canvas-bg: #f7f6f3;
     --button-bg: #37352f;
     --button-text: #ffffff;
@@ -21,6 +22,7 @@
         --accent-bg: #2a2a2a;
         --background: #1a1a1a;
         --tag-bg: #505050;
+        --tag-text: #ececec;
         --canvas-bg: #2a2a2a;
         --button-bg: #ececec;
         --button-text: #1a1a1a;
@@ -35,6 +37,7 @@
     --accent-bg: #2a2a2a;
     --background: #1a1a1a;
     --tag-bg: #505050;
+    --tag-text: #ececec;
     --canvas-bg: #2a2a2a;
     --button-bg: #ececec;
     --button-text: #1a1a1a;
@@ -48,6 +51,7 @@
     --accent-bg: #f7f6f3;
     --background: #ffffff;
     --tag-bg: #efefef;
+    --tag-text: #000000;
     --canvas-bg: #f7f6f3;
     --button-bg: #37352f;
     --button-text: #ffffff;
@@ -176,69 +180,30 @@ hr {
     gap: 8px;
 }
 
-.tag {
-    background: var(--tag-bg);
-    color: #000000;
-    padding: 2px 8px;
-    border-radius: 3px;
-    font-size: 12px;
-    transition: background 0.3s ease;
-}
-
-/* Artist Tags - Unique colors per artist */
-.tag-artist-floris {
-    background: #fdecc8;
-    color: #000000;
-    padding: 2px 8px;
-    border-radius: 3px;
-    font-size: 12px;
-    transition: background 0.3s ease;
-}
-
-.tag-artist-gembrandt {
-    background: #e9d5ff;
-    color: #000000;
-    padding: 2px 8px;
-    border-radius: 3px;
-    font-size: 12px;
-    transition: background 0.3s ease;
-}
-
-.tag-artist-claudio {
-    background: #cffafe;
-    color: #000000;
-    padding: 2px 8px;
-    border-radius: 3px;
-    font-size: 12px;
-    transition: background 0.3s ease;
-}
-
-.tag-artist-openai {
-    background: #a7f3d0;
-    color: #000000;
-    padding: 2px 8px;
-    border-radius: 3px;
-    font-size: 12px;
-    transition: background 0.3s ease;
-}
-
-.tag-artist-chatelier {
-    background: #a7f3d0;
-    color: #000000;
-    padding: 2px 8px;
-    border-radius: 3px;
-    font-size: 12px;
-    transition: background 0.3s ease;
-}
-
+/* Shared tag geometry — one source for .tag and every artist tag. */
+.tag,
+.tag-artist-floris,
+.tag-artist-gembrandt,
+.tag-artist-claudio,
+.tag-artist-openai,
+.tag-artist-chatelier,
 .tag-artist-aesop {
-    background: #fde68a;
-    color: #000000;
     padding: 2px 8px;
     border-radius: 3px;
     font-size: 12px;
     transition: background 0.3s ease;
 }
+
+/* Plain medium/number tag: background AND text follow the active theme. */
+.tag { background: var(--tag-bg); color: var(--tag-text); }
+
+/* Artist Tags — fixed pastel backgrounds in both themes, so always dark text. */
+.tag-artist-floris { background: #fdecc8; color: #000000; }
+.tag-artist-gembrandt { background: #e9d5ff; color: #000000; }
+.tag-artist-claudio { background: #cffafe; color: #000000; }
+.tag-artist-openai { background: #a7f3d0; color: #000000; }
+.tag-artist-chatelier { background: #a7f3d0; color: #000000; }
+.tag-artist-aesop { background: #fde68a; color: #000000; }
 
 /* --- Index Page Components --- */
 .title-wrapper {
@@ -345,10 +310,10 @@ hr {
 /* --- Shared Components --- */
 .monospace { font-family: monospace, 'Courier New', monospace; }
 .hidden { display: none !important; }
-.tag-accent-blue { background: #e7f3f8; }
-.tag-accent-amber { background: #fdecc8; }
-.tag-accent-silver { background: #f1f0ef; }
-.tag-accent-ghost { opacity: 0.7; }
+/* Accent backgrounds layered on .tag (fixed light), so keep dark text. */
+.tag-accent-blue { background: #e7f3f8; color: #000000; }
+.tag-accent-amber { background: #fdecc8; color: #000000; }
+.tag-accent-silver { background: #f1f0ef; color: #000000; }
 .canvas {
     width: 100%;
     background: var(--canvas-bg);
