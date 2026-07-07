@@ -10,14 +10,19 @@ permanent = [p for p in projects if p.get('exhibition') != 'special']
 
 
 def esc(s):
-    return str(s).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+    # Escapes &, <, > and " so values are safe in both element text and
+    # double-quoted attributes. (Apostrophes are intentionally left alone —
+    # nothing here emits into single-quoted attributes, and escaping them would
+    # needlessly churn the curatorial copy.)
+    return (str(s).replace('&', '&amp;').replace('<', '&lt;')
+            .replace('>', '&gt;').replace('"', '&quot;'))
 
 
 # Permanent Collection — numbered accession cards
 cards = []
 for project in permanent:
     number = project['slug'][7:9]
-    cards.append(f'         <a href="collections/{project["slug"]}" class="project-card"><span class="tag">{number}</span> {project["card"]}</a>')
+    cards.append(f'         <a href="collections/{esc(project["slug"])}" class="project-card"><span class="tag">{number}</span> {esc(project["card"])}</a>')
 
 # Two "incoming" placeholder slots numbered just past the last permanent accession
 next_slot = len(permanent) + 1
@@ -33,7 +38,7 @@ def exhibition_card(p):
         meta += f' · On view from {esc(p["onViewFrom"])}'
     note = f'\n            <p class="exhibition-note">{esc(p["curatorialNote"])}</p>' if p.get('curatorialNote') else ''
     return (
-        f'        <a href="collections/{p["slug"]}" class="exhibition-card">\n'
+        f'        <a href="collections/{esc(p["slug"])}" class="exhibition-card">\n'
         f'            <div class="exhibition-eyebrow">Special Exhibition</div>\n'
         f'            <div class="exhibition-title">{esc(p["card"])}</div>\n'
         f'            <div class="exhibition-meta">{meta}</div>{note}\n'
@@ -167,7 +172,7 @@ lines += [
 (root / 'llms.txt').write_text('\n'.join(lines) + '\n', encoding='utf-8')
 
 # Generate sitemap.xml
-urls = [f'  <url><loc>https://www.thesilicates.com/collections/{proj["slug"]}</loc><priority>0.8</priority></url>' for proj in projects]
+urls = [f'  <url><loc>https://www.thesilicates.com/collections/{esc(proj["slug"])}</loc><priority>0.8</priority></url>' for proj in projects]
 sitemap = f"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <url><loc>https://www.thesilicates.com/</loc><priority>1.0</priority></url>\n  <url><loc>https://www.thesilicates.com/registry.html</loc><priority>0.5</priority></url>\n{chr(10).join(urls)}\n</urlset>\n"
 (root / 'sitemap.xml').write_text(sitemap, encoding='utf-8')
 
