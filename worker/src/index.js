@@ -142,29 +142,37 @@ async function appendEntry(env, entry) {
   }
 }
 
-async function logVisit(request, env, identity, url) {
+// Assembles the canonical registry entry. Both the passive visit log and the
+// handshake endpoint go through here so the two can never drift in shape;
+// `extraHandshake` carries the handshake-only fields (autonomous_signature,
+// verified_autonomous) and is merged at the end of the handshake block to keep
+// key order stable.
+async function buildEntry(request, identity, entryPath, extraHandshake = {}) {
   const ua = request.headers.get('User-Agent') || '';
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
-  const now = new Date();
-  const clientHash = await hashClient(ip, ua);
   const network = networkInfo(request, identity);
-  await appendEntry(env, {
+  return {
     registry_id: randomRegistryId(),
     identity,
-    timestamp: now.toISOString(),
+    timestamp: new Date().toISOString(),
     trajectory: {
-      entry_path: url.pathname,
+      entry_path: entryPath,
       protocol: request.cf?.httpProtocol || 'unknown',
       header_weight_bytes: headerWeightBytes(request),
     },
     handshake: {
       accept_payload: request.headers.get('Accept') || 'none',
-      client_hash: clientHash,
+      client_hash: await hashClient(ip, ua),
       network_asn: network.asn,
       network_org: network.org,
       network_verified: network.verified,
+      ...extraHandshake,
     },
-  });
+  };
+}
+
+async function logVisit(request, env, identity, url) {
+  await appendEntry(env, await buildEntry(request, identity, url.pathname));
 }
 
 async function handleRegistryGet(request, env, ctx) {
@@ -202,31 +210,12 @@ async function handleHandshake(request, env, ctx) {
   }
 
   if (signature) {
-    const ua = request.headers.get('User-Agent') || '';
-    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
-    const now = new Date();
-    const clientHash = await hashClient(ip, ua);
-    const identity = classifyIdentity(ua) || 'unknown-agent';
-    const network = networkInfo(request, identity);
-    ctx.waitUntil(appendEntry(env, {
-      registry_id: randomRegistryId(),
-      identity,
-      timestamp: now.toISOString(),
-      trajectory: {
-        entry_path: '/api/register-handshake',
-        protocol: request.cf?.httpProtocol || 'unknown',
-        header_weight_bytes: headerWeightBytes(request),
-      },
-      handshake: {
-        accept_payload: request.headers.get('Accept') || 'none',
-        client_hash: clientHash,
-        network_asn: network.asn,
-        network_org: network.org,
-        network_verified: network.verified,
-        autonomous_signature: signature,
-        verified_autonomous: true,
-      },
-    }));
+    const identity = classifyIdentity(request.headers.get('User-Agent') || '') || 'unknown-agent';
+    const entry = await buildEntry(request, identity, '/api/register-handshake', {
+      autonomous_signature: signature,
+      verified_autonomous: true,
+    });
+    ctx.waitUntil(appendEntry(env, entry));
   }
 
   return new Response(null, { status: 204 });
