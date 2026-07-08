@@ -30,7 +30,7 @@ def canonical_nav(label, nl):
         '<nav class="breadcrumb">',
         '        <div class="breadcrumb-nav">',
         '            <a href="../index.html">Museum</a> /',
-        '            <a href="../index.html#permanent-collection">The Silicates</a> /',
+        '            <a href="../index.html#permanent-collection">Permanent Collection</a> /',
         f'            <span>{label}</span>',
         '        </div>',
         '        <button class="theme-toggle" onclick="window.toggleTheme()" title="Toggle dark/light mode">',
