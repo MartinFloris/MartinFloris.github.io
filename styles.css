@@ -144,6 +144,17 @@ h1 {
     margin-bottom: 40px;
 }
 
+.intro-text a {
+    color: var(--exhibition-accent);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s ease;
+}
+
+.intro-text a:hover {
+    border-bottom-color: var(--exhibition-accent);
+}
+
 hr {
     border: none;
     border-bottom: 1px solid var(--border-color);
