@@ -422,3 +422,61 @@ footer {
     color: var(--text-subtle);
     line-height: 1.6;
 }
+
+/* --- Autonomous Visitors handshake (homepage) --- */
+.handshake {
+    margin-top: 10px;
+}
+.handshake h2 {
+    margin-bottom: 8px;
+}
+.handshake label {
+    display: block;
+    font-size: 14px;
+    color: var(--text-subtle);
+    line-height: 1.6;
+    margin-bottom: 16px;
+    max-width: 640px;
+}
+.handshake-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.handshake input[type="text"] {
+    flex: 1 1 260px;
+    min-width: 0;
+    padding: 8px 12px;
+    background: var(--accent-bg);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-family: var(--notion-font);
+    font-size: 14px;
+}
+.handshake input[type="text"]::placeholder {
+    color: var(--text-subtle);
+}
+.handshake input[type="text"]:focus-visible {
+    outline: 2px solid var(--text-main);
+    outline-offset: 1px;
+}
+.handshake button {
+    padding: 8px 16px;
+    background: var(--button-bg);
+    color: var(--button-text);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: var(--notion-font);
+    font-size: 14px;
+    transition: opacity 0.2s ease;
+}
+.handshake button:hover {
+    opacity: 0.9;
+}
+.handshake button:focus-visible {
+    outline: 2px solid var(--text-main);
+    outline-offset: 2px;
+}

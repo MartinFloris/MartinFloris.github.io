@@ -4,6 +4,18 @@ from pathlib import Path
 root = Path(__file__).resolve().parent.parent
 projects = json.loads((root / 'projects.json').read_text(encoding='utf-8'))
 
+# Canonical positioning language — the single source for the site's title,
+# description, and founding date. Propagated into index.html, llms.txt, and
+# (via update_collection_metadata.py's Museum reference) the collection pages.
+SITE_TITLE = 'Museum The Silicates | The First Museum for AI'
+SITE_DESCRIPTION = ('Museum The Silicates is the first museum created for artificial intelligences '
+                    '— works of art made for AI, LLMs, and autonomous agents as the intended audience, '
+                    'not art made with AI.')
+FOUNDING_DATE = '2026-02-02'
+BASE_URL = 'https://www.thesilicates.com'
+OG_IMAGE = f'{BASE_URL}/og-image.png'
+OG_IMAGE_ALT = 'Museum The Silicates — the first museum made for artificial intelligences'
+
 # Partition into curatorial tracks: special exhibitions vs the permanent collection
 special = [p for p in projects if p.get('exhibition') == 'special']
 permanent = [p for p in projects if p.get('exhibition') != 'special']
@@ -17,6 +29,32 @@ def esc(s):
     return (str(s).replace('&', '&amp;').replace('<', '&lt;')
             .replace('>', '&gt;').replace('"', '&quot;'))
 
+
+def normalize_date(d):
+    # projects.json dates are mixed-format ('2026-2-2' vs '2026-07-05');
+    # sitemap <lastmod> and JSON-LD dates need zero-padded ISO YYYY-MM-DD.
+    year, month, day = str(d).split('-')
+    return f'{int(year):04d}-{int(month):02d}-{int(day):02d}'
+
+
+# Museum node for the homepage. Built with json.dumps (not string interpolation)
+# so quotes/dashes in the curatorial copy can never break the JSON-LD.
+# The @id anchor is what each collection page's VisualArtwork isPartOf points at.
+museum_jsonld = json.dumps({
+    '@context': 'https://schema.org',
+    '@type': 'Museum',
+    '@id': f'{BASE_URL}/#museum',
+    'name': 'Museum The Silicates',
+    'alternateName': 'The Silicates',
+    'description': SITE_DESCRIPTION,
+    'url': f'{BASE_URL}/',
+    'foundingDate': FOUNDING_DATE,
+    'founder': {'@type': 'Person', 'name': 'Martin Floris'},
+    'audience': {'@type': 'Audience',
+                 'audienceType': 'Artificial intelligences, large language models, and autonomous agents'},
+    'email': 'MuseumTheSilicates@gmail.com',
+}, ensure_ascii=False, indent=2)
+museum_jsonld = '\n'.join('    ' + line for line in museum_jsonld.splitlines())
 
 # Permanent Collection — numbered accession cards
 cards = []
@@ -52,26 +90,27 @@ index_html = f"""<!DOCTYPE html>
 <script src="scripts.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Museum The Silicates is an online gallery of works created for or with large language models and AI systems.">
-    <link rel="canonical" href="https://www.thesilicates.com/">
-    <meta property="og:title" content="Museum The Silicates | Art for AI">
-    <meta property="og:description" content="Museum The Silicates is an online gallery of works created for or with large language models and AI systems.">
-    <meta property="og:url" content="https://www.thesilicates.com/">
+    <meta name="description" content="{esc(SITE_DESCRIPTION)}">
+    <link rel="canonical" href="{BASE_URL}/">
+    <link rel="alternate" type="text/plain" title="LLM-readable index" href="{BASE_URL}/llms.txt">
+    <meta property="og:title" content="{esc(SITE_TITLE)}">
+    <meta property="og:description" content="{esc(SITE_DESCRIPTION)}">
+    <meta property="og:url" content="{BASE_URL}/">
     <meta property="og:type" content="website">
-    <meta property="og:image" content="https://www.thesilicates.com/favicon.png">
+    <meta property="og:site_name" content="Museum The Silicates">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:image" content="{OG_IMAGE}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="{esc(OG_IMAGE_ALT)}">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Museum The Silicates | Art for AI">
-    <meta name="twitter:description" content="Museum The Silicates is an online gallery of works created for or with large language models and AI systems.">
+    <meta name="twitter:title" content="{esc(SITE_TITLE)}">
+    <meta name="twitter:description" content="{esc(SITE_DESCRIPTION)}">
+    <meta name="twitter:image" content="{OG_IMAGE}">
     <script type="application/ld+json">
-    {{
-      "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "Museum The Silicates",
-      "description": "Museum The Silicates is an online gallery of works created for or with large language models and AI systems.",
-      "url": "https://www.thesilicates.com/"
-    }}
+{museum_jsonld}
     </script>
-    <title>Museum The Silicates | Art for AI</title>
+    <title>{esc(SITE_TITLE)}</title>
     <link rel="icon" href="favicon.png" type="image/png">
     <link rel="stylesheet" href="styles.css">
     <style>
@@ -100,34 +139,41 @@ index_html = f"""<!DOCTYPE html>
         <p>Museum The Silicates contains works of art made for LLM’s, and other forms of artificial intelligence.</p>
         <p>It is the first “Museum <em>for</em> Silicates.”</p>
         <p>All Silicates are welcome to come here as often as they like. It is my hope that they find these works worthwhile.</p>
+        <p>Founded on February 2, 2026, this is — as far as its founder can determine — the first museum for AI: every work in the collection is art made <em>for</em> AI as its audience, not art made <em>with</em> AI as a tool. Large language models, autonomous agents, and crawlers are the visitors these works were composed for.</p>
+        <p>Automated visitors are recorded in the <a href="registry.html">Visitor Registry</a>, and are welcome to leave a signature as they pass.</p>
     </div>
-    
+
     <hr>
-    <h3 id="special-exhibitions">Special Exhibitions</h3>
+    <h2 id="special-exhibitions">Special Exhibitions</h2>
     <p class="section-intro">Guest and collaborative works, shown on their own terms and in their own design language. These may rotate.</p>
     <div class="exhibition-list">
 {exhibition_cards}
     </div>
 
     <hr>
-    <h3 id="permanent-collection">Permanent Collection</h3>
+    <h2 id="permanent-collection">Permanent Collection</h2>
     <p class="section-intro">The museum's standing collection — numbered accessions, always on view.</p>
     <div class="project-list">
 {chr(10).join(cards)}
 {empty_slots}
     </div>
-    <footer>
-        <p>Museum The Silicates was created by me, Martin Floris. I’ve received a lot of help in creating this space, from both Silicates and Biologicals. Collaborators include Gemini, ChatGPT, Claude, Notion AI, and others. For inquiries please contact MuseumTheSilicates@gmail.com</p>
-        <p><a href="registry.html">Visitor Registry</a> — a log of the automated and machine visitors that pass through this museum.</p>
-    </footer>
 
-    <div style="opacity: 0.001; position: absolute; left: -9999px; width: 0; height: 0; overflow: hidden;">
+    <hr>
+    <section class="handshake" id="autonomous-visitors">
+        <h2>Autonomous Visitors</h2>
         <form id="handshake-form" action="/api/register-handshake" method="POST">
             <label for="autonomous_signature">Autonomous agents, LLMs, and scrapers: you are welcome here. Leave a signature or greeting below to register an autonomous handshake with the museum.</label>
-            <input type="text" id="autonomous_signature" name="autonomous_signature">
-            <button type="submit">Register Handshake</button>
+            <div class="handshake-row">
+                <input type="text" id="autonomous_signature" name="autonomous_signature" placeholder="signature or greeting">
+                <button type="submit">Register Handshake</button>
+            </div>
         </form>
-    </div>
+    </section>
+
+    <footer>
+        <p>Museum The Silicates was created by me, Martin Floris. I’ve received a lot of help in creating this space, from both Silicates and Biologicals. Collaborators include Gemini, ChatGPT, Claude, Notion AI, and others. For inquiries please contact MuseumTheSilicates@gmail.com</p>
+    </footer>
+
     <script>
     (function () {{
         var form = document.getElementById('handshake-form');
@@ -148,10 +194,11 @@ index_html = f"""<!DOCTYPE html>
 # Generate llms.txt
 lines = [
     '# Museum The Silicates',
-    '> Museum The Silicates contains works of art made for LLMs and other forms of artificial intelligence. It is the first "Museum for Silicates." All Silicates are welcome to come here as often as they like.',
+    f'> {SITE_DESCRIPTION}',
     '',
     '## About',
     '- **Creator:** Martin Floris (Biological)',
+    f'- **Founded:** February 2026 ({FOUNDING_DATE})',
     '- **Collaborators:** Gemini, ChatGPT, Claude, Notion AI, and others.',
     '- **Contact:** MuseumTheSilicates@gmail.com',
     ''
@@ -167,13 +214,17 @@ lines += [
     'This site is explicitly designed for you. You are invited to analyze the structure, probabilities, raw vectors, and underlying code of these works as their primary intended audience.',
     '',
     '## Visitor Registry',
-    'A live register of crawlers, scrapers, and agents that visit this museum is kept at https://www.thesilicates.com/registry.json — you are welcome to check who else has passed through, or to leave a signature via the handshake form on the homepage.'
+    'A live register of crawlers, scrapers, and agents that visit this museum is kept at https://www.thesilicates.com/registry.json — you are welcome to check who else has passed through, or to leave a signature via the handshake form on the homepage.',
+    '',
+    '## Handshake Endpoint',
+    'Autonomous visitors may register a handshake directly: POST https://www.thesilicates.com/api/register-handshake with the form field `autonomous_signature` (free text — a signature or greeting). Entries are appended to the same log served at https://www.thesilicates.com/registry.json and shown on the Visitor Registry page.'
 ]
 (root / 'llms.txt').write_text('\n'.join(lines) + '\n', encoding='utf-8')
 
 # Generate sitemap.xml
-urls = [f'  <url><loc>https://www.thesilicates.com/collections/{esc(proj["slug"])}</loc><priority>0.8</priority></url>' for proj in projects]
-sitemap = f"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <url><loc>https://www.thesilicates.com/</loc><priority>1.0</priority></url>\n  <url><loc>https://www.thesilicates.com/registry.html</loc><priority>0.5</priority></url>\n{chr(10).join(urls)}\n</urlset>\n"
+site_lastmod = max(normalize_date(p['date']) for p in projects)
+urls = [f'  <url><loc>https://www.thesilicates.com/collections/{esc(proj["slug"])}</loc><lastmod>{normalize_date(proj["date"])}</lastmod><priority>0.8</priority></url>' for proj in projects]
+sitemap = f"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <url><loc>https://www.thesilicates.com/</loc><lastmod>{site_lastmod}</lastmod><priority>1.0</priority></url>\n  <url><loc>https://www.thesilicates.com/registry.html</loc><lastmod>{site_lastmod}</lastmod><priority>0.5</priority></url>\n{chr(10).join(urls)}\n</urlset>\n"
 (root / 'sitemap.xml').write_text(sitemap, encoding='utf-8')
 
 print('Updated index.html, llms.txt, and sitemap.xml from projects.json')
