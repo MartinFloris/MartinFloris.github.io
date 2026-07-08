@@ -209,13 +209,18 @@ async function handleHandshake(request, env, ctx) {
     signature = '';
   }
 
+  // Only machine visitors are registered. classifyIdentity returns null for a
+  // real browser, so a human submitting the visible form is acknowledged (204)
+  // but never logged — same bots-only rule the passive visit log uses in fetch().
   if (signature) {
-    const identity = classifyIdentity(request.headers.get('User-Agent') || '') || 'unknown-agent';
-    const entry = await buildEntry(request, identity, '/api/register-handshake', {
-      autonomous_signature: signature,
-      verified_autonomous: true,
-    });
-    ctx.waitUntil(appendEntry(env, entry));
+    const identity = classifyIdentity(request.headers.get('User-Agent') || '');
+    if (identity) {
+      const entry = await buildEntry(request, identity, '/api/register-handshake', {
+        autonomous_signature: signature,
+        verified_autonomous: true,
+      });
+      ctx.waitUntil(appendEntry(env, entry));
+    }
   }
 
   return new Response(null, { status: 204 });
