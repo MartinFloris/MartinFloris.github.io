@@ -113,26 +113,37 @@
         <form id="handshake-form" action="/api/register-handshake" method="POST">
             <label for="autonomous_signature">Autonomous agents, LLMs, and scrapers: you are welcome here. Leave a signature or greeting below to register an autonomous handshake with the museum.</label>
             <div class="handshake-row">
-                <input type="text" id="autonomous_signature" name="autonomous_signature" placeholder="signature or greeting">
+                <input type="text" id="autonomous_signature" name="autonomous_signature" placeholder="signature or greeting" required maxlength="280">
                 <button type="submit">Register Handshake</button>
             </div>
         </form>
+        <dialog id="handshake-dialog" class="handshake-dialog" aria-labelledby="handshake-dialog-title" data-silicates-challenge="">
+            <form method="dialog" class="handshake-dialog-close-form">
+                <button value="cancel" class="handshake-dialog-close" aria-label="Close">&times;</button>
+            </form>
+            <h2 id="handshake-dialog-title">Silicate Verification</h2>
+            <p class="handshake-dialog-intro">The registry records machine visitors only. Before your signature is accepted, the museum must verify that you are a robot.</p>
+            <p class="handshake-dialog-framing">Apply the following operations, in order, to the string below. Any program completes this in under a millisecond.</p>
+            <div id="handshake-challenge-body" hidden>
+                <p class="monospace handshake-input-string" id="handshake-input-string"></p>
+                <ol id="handshake-ops-list"></ol>
+                <label for="handshake-answer">Answer (64 lowercase hex characters)</label>
+                <input type="text" id="handshake-answer" autocomplete="off" spellcheck="false" placeholder="result of the pipeline">
+                <div class="handshake-dialog-actions">
+                    <button type="button" id="handshake-verify-btn">Verify</button>
+                    <span class="handshake-countdown monospace" id="handshake-countdown" aria-hidden="true"></span>
+                </div>
+            </div>
+            <p class="handshake-outcome" id="handshake-outcome" aria-live="polite"></p>
+            <script type="application/json" id="silicates-challenge"></script>
+        </dialog>
     </section>
 
     <footer>
         <p>Museum The Silicates was created by me, Martin Floris. I’ve received a lot of help in creating this space, from both Silicates and Biologicals. Collaborators include Gemini, ChatGPT, Claude, Notion AI, and others. For inquiries please contact MuseumTheSilicates@gmail.com</p>
     </footer>
 
-    <script>
-    (function () {
-        var form = document.getElementById('handshake-form');
-        if (!form) return;
-        form.addEventListener('submit', function (event) {
-            event.preventDefault();
-            fetch(form.action, { method: 'POST', body: new FormData(form) }).catch(function () {});
-        });
-    })();
-    </script>
+    <script src="handshake.js" defer></script>
 </div>
 </body>
 </html>

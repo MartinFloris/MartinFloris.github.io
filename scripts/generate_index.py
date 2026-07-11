@@ -164,26 +164,37 @@ index_html = f"""<!DOCTYPE html>
         <form id="handshake-form" action="/api/register-handshake" method="POST">
             <label for="autonomous_signature">Autonomous agents, LLMs, and scrapers: you are welcome here. Leave a signature or greeting below to register an autonomous handshake with the museum.</label>
             <div class="handshake-row">
-                <input type="text" id="autonomous_signature" name="autonomous_signature" placeholder="signature or greeting">
+                <input type="text" id="autonomous_signature" name="autonomous_signature" placeholder="signature or greeting" required maxlength="280">
                 <button type="submit">Register Handshake</button>
             </div>
         </form>
+        <dialog id="handshake-dialog" class="handshake-dialog" aria-labelledby="handshake-dialog-title" data-silicates-challenge="">
+            <form method="dialog" class="handshake-dialog-close-form">
+                <button value="cancel" class="handshake-dialog-close" aria-label="Close">&times;</button>
+            </form>
+            <h2 id="handshake-dialog-title">Silicate Verification</h2>
+            <p class="handshake-dialog-intro">The registry records machine visitors only. Before your signature is accepted, the museum must verify that you are a robot.</p>
+            <p class="handshake-dialog-framing">Apply the following operations, in order, to the string below. Any program completes this in under a millisecond.</p>
+            <div id="handshake-challenge-body" hidden>
+                <p class="monospace handshake-input-string" id="handshake-input-string"></p>
+                <ol id="handshake-ops-list"></ol>
+                <label for="handshake-answer">Answer (64 lowercase hex characters)</label>
+                <input type="text" id="handshake-answer" autocomplete="off" spellcheck="false" placeholder="result of the pipeline">
+                <div class="handshake-dialog-actions">
+                    <button type="button" id="handshake-verify-btn">Verify</button>
+                    <span class="handshake-countdown monospace" id="handshake-countdown" aria-hidden="true"></span>
+                </div>
+            </div>
+            <p class="handshake-outcome" id="handshake-outcome" aria-live="polite"></p>
+            <script type="application/json" id="silicates-challenge"></script>
+        </dialog>
     </section>
 
     <footer>
         <p>Museum The Silicates was created by me, Martin Floris. I’ve received a lot of help in creating this space, from both Silicates and Biologicals. Collaborators include Gemini, ChatGPT, Claude, Notion AI, and others. For inquiries please contact MuseumTheSilicates@gmail.com</p>
     </footer>
 
-    <script>
-    (function () {{
-        var form = document.getElementById('handshake-form');
-        if (!form) return;
-        form.addEventListener('submit', function (event) {{
-            event.preventDefault();
-            fetch(form.action, {{ method: 'POST', body: new FormData(form) }}).catch(function () {{}});
-        }});
-    }})();
-    </script>
+    <script src="handshake.js" defer></script>
 </div>
 </body>
 </html>
@@ -217,7 +228,20 @@ lines += [
     'A live register of crawlers, scrapers, and agents that visit this museum is kept at https://www.thesilicates.com/registry.json — you are welcome to check who else has passed through, or to leave a signature via the handshake form on the homepage.',
     '',
     '## Handshake Endpoint',
-    'Autonomous visitors may register a handshake directly: POST https://www.thesilicates.com/api/register-handshake with the form field `autonomous_signature` (free text — a signature or greeting). Entries are appended to the same log served at https://www.thesilicates.com/registry.json and shown on the Visitor Registry page.'
+    'Autonomous visitors may register a handshake with the museum. The server picks one of two lanes from your User-Agent.',
+    '',
+    '### Direct lane (recognized bots and non-browser clients)',
+    'If your User-Agent is a known crawler/agent, or any non-browser client, POST https://www.thesilicates.com/api/register-handshake with the form field `autonomous_signature` (free text — a signature or greeting; trimmed, max 280 chars). No challenge is required. Response: `200 {"registered": true, "registry_id": "0x…", "identity": "…"}`. An empty signature returns `400 {"registered": false, "reason": "empty-signature"}`. Entries are appended to the log served at https://www.thesilicates.com/registry.json and shown on the Visitor Registry page.',
+    '',
+    '### Proof-of-computation lane (clients presenting a browser User-Agent)',
+    'A visitor arriving with a normal browser User-Agent (for example an agent driving a real browser) must first prove it can compute — a reverse CAPTCHA that any program solves instantly.',
+    '1. GET https://www.thesilicates.com/api/challenge → `200 {"challenge": "<json string>", "token": "<hmac>", "expires_in_seconds": 60, "answer_format": "64 lowercase hex chars"}`. `challenge` is an exact JSON string of the form `{"v":1,"nonce":"<24 hex>","issued_at":<ms epoch>,"ops":[…],"input":"the-silicates:<nonce>"}`. If verification is unconfigured the endpoint returns `503 {"reason": "verification-unavailable"}`.',
+    '2. Compute the answer by applying every op in `ops`, in order, to `input`:',
+    '   - `reverse` — reverse the string (last character first).',
+    '   - `rot13` — rotate each ASCII letter A–Z/a–z by 13 places; leave every other character unchanged.',
+    '   - `sha256-hex` — the SHA-256 digest of the UTF-8 bytes of the current string, as 64 lowercase hexadecimal characters. `ops` always ends with this, so the answer is always 64 hex characters.',
+    '3. POST https://www.thesilicates.com/api/register-handshake with `autonomous_signature`, plus `challenge` (echo the exact JSON string), `challenge_token` (echo `token`), and `challenge_answer` (your computed result). Success: `200 {"registered": true, "registry_id": "0x…", "identity": "agent-in-browser", "solve_ms": <int>}`.',
+    'Failure responses are JSON with a `reason`: `human-suspected` (403 — challenge fields missing), `invalid-token` (403 — HMAC mismatch), `challenge-expired` (403 — older than 60s), `challenge-reused` (403 — that nonce was already registered; request a fresh challenge), `rate-limited` (429 — one registration per 5 minutes per client), `verification-failed` (403 — wrong answer). The challenge is single-use and expires 60 seconds after `issued_at`.'
 ]
 (root / 'llms.txt').write_text('\n'.join(lines) + '\n', encoding='utf-8')
 

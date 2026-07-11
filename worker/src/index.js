@@ -83,6 +83,13 @@ const MAX_ENTRIES = 500;
 // hit KV; kept short since new visits should still surface quickly.
 const REGISTRY_CACHE_SECONDS = 15;
 
+// Handshake challenge tuning.
+const CHALLENGE_TTL_SECONDS = 60;        // window a challenge stays valid
+const CHALLENGE_CLOCK_SLACK_SECONDS = 5; // tolerance for client/edge clock skew
+const NONCE_TTL_SECONDS = 300;           // how long a spent nonce is remembered
+const HANDSHAKE_RATE_TTL_SECONDS = 300;  // 1 browser-lane registration / client / 5 min
+const MAX_SIGNATURE_LENGTH = 280;
+
 // Returns a bot identity string, 'unknown-agent' for non-browser scripted clients,
 // or null for anything that looks like a real browser (those aren't logged).
 function classifyIdentity(ua) {
@@ -200,35 +207,274 @@ async function handleRegistryGet(request, env, ctx) {
   return response;
 }
 
+// ---- Handshake proof-of-computation challenge ----------------------------
+// A visitor arriving with a browser User-Agent must prove it can compute before
+// its signature is logged: a reverse CAPTCHA. GET /api/challenge issues an
+// HMAC-signed, expiring, single-use pipeline; the POST re-derives it server-side.
+
+const CORS_JSON_HEADERS = {
+  'Content-Type': 'application/json',
+  'Access-Control-Allow-Origin': '*',
+};
+
+function jsonResponse(obj, status = 200) {
+  return new Response(JSON.stringify(obj), { status, headers: CORS_JSON_HEADERS });
+}
+
+function bytesToHex(buffer) {
+  return [...new Uint8Array(buffer)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+// HMAC-SHA-256 of `text` under `secret`, lowercase hex. The challenge string is
+// signed with this so the server can trust an echoed challenge without storing it.
+async function hmacSign(secret, text) {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(text));
+  return bytesToHex(sig);
+}
+
+// Constant-time compare of two equal-length hex strings (tokens are always 64 chars).
+function timingSafeEqualHex(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+function rot13(s) {
+  return s.replace(/[A-Za-z]/g, (c) => {
+    const base = c <= 'Z' ? 65 : 97;
+    return String.fromCharCode(((c.charCodeAt(0) - base + 13) % 26) + base);
+  });
+}
+
+function reverseString(s) {
+  return s.split('').reverse().join('');
+}
+
+async function sha256Hex(s) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return bytesToHex(digest);
+}
+
+// Applies each op in order; `ops` always ends with 'sha256-hex' so the result is
+// 64 lowercase hex chars. Throws on an unknown op (defensive — ops are ours).
+async function runPipeline(ops, input) {
+  let value = input;
+  for (const op of ops) {
+    if (op === 'reverse') value = reverseString(value);
+    else if (op === 'rot13') value = rot13(value);
+    else if (op === 'sha256-hex') value = await sha256Hex(value);
+    else throw new Error(`unknown op: ${op}`);
+  }
+  return value;
+}
+
+function randomHex(byteLength) {
+  const arr = new Uint8Array(byteLength);
+  crypto.getRandomValues(arr);
+  return bytesToHex(arr);
+}
+
+// Builds a fresh challenge object. ops = 1 or 2 transforms from {reverse, rot13}
+// in random order, always ending in sha256-hex. Key order here is the exact JSON
+// that gets signed and echoed, so it must stay {v, nonce, issued_at, ops, input}.
+function makeChallenge() {
+  const transforms = ['reverse', 'rot13'];
+  if (Math.random() < 0.5) transforms.reverse();
+  const count = 1 + Math.floor(Math.random() * 2); // 1 or 2 transforms
+  const ops = transforms.slice(0, count);
+  ops.push('sha256-hex');
+  const nonce = randomHex(12); // 24 hex chars
+  return {
+    v: 1,
+    nonce,
+    issued_at: Date.now(),
+    ops,
+    input: `the-silicates:${nonce}`,
+  };
+}
+
+async function handleChallengeGet(request, env) {
+  if (!env.CHALLENGE_SECRET) {
+    // Never hand out a challenge we couldn't verify later.
+    return jsonResponse({ reason: 'verification-unavailable' }, 503);
+  }
+  const challenge = JSON.stringify(makeChallenge());
+  const token = await hmacSign(env.CHALLENGE_SECRET, challenge);
+  return jsonResponse({
+    challenge,
+    token,
+    expires_in_seconds: CHALLENGE_TTL_SECONDS,
+    answer_format: '64 lowercase hex chars',
+    instructions: 'Apply each op in challenge.ops, in order, to challenge.input. reverse = reverse the string; rot13 = rotate A-Z/a-z by 13; sha256-hex = lowercase hex SHA-256 of the UTF-8 bytes. POST the result as challenge_answer with challenge and challenge_token echoed back.',
+  });
+}
+
+function handleOptions() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Max-Age': '86400',
+    },
+  });
+}
+
 async function handleHandshake(request, env, ctx) {
-  let signature = '';
+  let form;
   try {
-    const form = await request.formData();
-    signature = (form.get('autonomous_signature') || '').toString().trim();
+    form = await request.formData();
   } catch (err) {
-    signature = '';
+    return jsonResponse({ registered: false, reason: 'empty-signature' }, 400);
   }
 
-  // Only machine visitors are registered. classifyIdentity returns null for a
-  // real browser, so a human submitting the visible form is acknowledged (204)
-  // but never logged — same bots-only rule the passive visit log uses in fetch().
-  if (signature) {
-    const identity = classifyIdentity(request.headers.get('User-Agent') || '');
-    if (identity) {
-      const entry = await buildEntry(request, identity, '/api/register-handshake', {
-        autonomous_signature: signature,
-        verified_autonomous: true,
-      });
-      ctx.waitUntil(appendEntry(env, entry));
-    }
+  let signature = (form.get('autonomous_signature') || '').toString().trim();
+  if (signature.length > MAX_SIGNATURE_LENGTH) signature = signature.slice(0, MAX_SIGNATURE_LENGTH);
+  if (!signature) {
+    return jsonResponse({ registered: false, reason: 'empty-signature' }, 400);
   }
 
-  return new Response(null, { status: 204 });
+  const identity = classifyIdentity(request.headers.get('User-Agent') || '');
+
+  // Direct lane: recognized bots and non-browser clients register as before,
+  // no challenge — backwards compatible with the promise in llms.txt.
+  if (identity) {
+    const entry = await buildEntry(request, identity, '/api/register-handshake', {
+      autonomous_signature: signature,
+      verified_autonomous: true,
+    });
+    ctx.waitUntil(appendEntry(env, entry));
+    return jsonResponse({ registered: true, registry_id: entry.registry_id, identity });
+  }
+
+  // Browser lane: proof-of-computation required.
+  if (!env.CHALLENGE_SECRET) {
+    return jsonResponse({ registered: false, reason: 'verification-unavailable' }, 503);
+  }
+
+  const challenge = (form.get('challenge') || '').toString();
+  const token = (form.get('challenge_token') || '').toString();
+  const answer = (form.get('challenge_answer') || '').toString();
+  if (!challenge || !token || !answer) {
+    return jsonResponse({
+      registered: false,
+      reason: 'human-suspected',
+      message: 'The registry records machine visitors only. Complete the verification challenge to register.',
+    }, 403);
+  }
+
+  const expected = await hmacSign(env.CHALLENGE_SECRET, challenge);
+  if (!timingSafeEqualHex(expected, token)) {
+    return jsonResponse({
+      registered: false,
+      reason: 'invalid-token',
+      message: 'The challenge could not be verified. Request a new one.',
+    }, 403);
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(challenge);
+  } catch (err) {
+    parsed = null;
+  }
+  if (!parsed || !parsed.nonce || !parsed.issued_at || !Array.isArray(parsed.ops) || typeof parsed.input !== 'string') {
+    return jsonResponse({
+      registered: false,
+      reason: 'invalid-token',
+      message: 'The challenge could not be verified. Request a new one.',
+    }, 403);
+  }
+
+  const now = Date.now();
+  if (now - parsed.issued_at > (CHALLENGE_TTL_SECONDS + CHALLENGE_CLOCK_SLACK_SECONDS) * 1000) {
+    return jsonResponse({
+      registered: false,
+      reason: 'challenge-expired',
+      message: 'That challenge expired. Request a new one.',
+    }, 403);
+  }
+
+  // Single-use: reject a nonce we've already registered.
+  const nonceKey = `nonce:${parsed.nonce}`;
+  if (await env.REGISTRY_KV.get(nonceKey)) {
+    return jsonResponse({
+      registered: false,
+      reason: 'challenge-reused',
+      message: 'That challenge was already used. Request a new one.',
+    }, 403);
+  }
+
+  // Rate limit: one browser-lane registration per client per 5 minutes.
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const ua = request.headers.get('User-Agent') || '';
+  const clientHash = await hashClient(ip, ua);
+  const rateKey = `hsrl:${clientHash}`;
+  if (await env.REGISTRY_KV.get(rateKey)) {
+    return jsonResponse({
+      registered: false,
+      reason: 'rate-limited',
+      message: 'One registration per five minutes. Please wait before trying again.',
+    }, 429);
+  }
+
+  let computed;
+  try {
+    computed = await runPipeline(parsed.ops, parsed.input);
+  } catch (err) {
+    return jsonResponse({
+      registered: false,
+      reason: 'invalid-token',
+      message: 'The challenge could not be verified. Request a new one.',
+    }, 403);
+  }
+  if (computed.trim().toLowerCase() !== answer.trim().toLowerCase()) {
+    return jsonResponse({
+      registered: false,
+      reason: 'verification-failed',
+      message: 'Verification failed. You appear to be human. The registry is reserved for machine visitors — you are welcome in the museum all the same.',
+    }, 403);
+  }
+
+  // Passed. Consume the nonce and arm the rate limit, then register.
+  await env.REGISTRY_KV.put(nonceKey, '1', { expirationTtl: NONCE_TTL_SECONDS });
+  await env.REGISTRY_KV.put(rateKey, '1', { expirationTtl: HANDSHAKE_RATE_TTL_SECONDS });
+  const solveMs = now - parsed.issued_at;
+  const entry = await buildEntry(request, 'agent-in-browser', '/api/register-handshake', {
+    autonomous_signature: signature,
+    verified_autonomous: true,
+    verification: 'proof-of-computation',
+    solve_ms: solveMs,
+  });
+  await appendEntry(env, entry);
+  return jsonResponse({
+    registered: true,
+    registry_id: entry.registry_id,
+    identity: 'agent-in-browser',
+    solve_ms: solveMs,
+  });
 }
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
+    if (url.pathname.startsWith('/api/') && request.method === 'OPTIONS') {
+      return handleOptions();
+    }
+
+    if (url.pathname === '/api/challenge' && request.method === 'GET') {
+      return handleChallengeGet(request, env);
+    }
 
     if (url.pathname === '/registry.json' && request.method === 'GET') {
       return handleRegistryGet(request, env, ctx);
