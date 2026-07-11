@@ -1,0 +1,22 @@
+# Mirror the routine command permissions in .claude/settings.json.
+
+prefix_rule(
+    pattern = ["gh", "run"],
+    decision = "allow",
+    justification = "Inspecting GitHub Actions runs is routine for this repository.",
+    match = [
+        "gh run list",
+        "gh run list --workflow=static.yml --limit 5",
+        "gh run view 123456789",
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", "push"],
+    decision = "allow",
+    justification = "Normal pushes are allowed; the repository hook separately blocks force pushes and remote-branch deletion.",
+    match = [
+        "git push",
+        "git push origin main",
+    ],
+)
