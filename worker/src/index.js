@@ -77,6 +77,20 @@ const EXPECTED_ORG_PATTERNS = {
   'cloudflare-crawler': /cloudflare/i,
 };
 
+// Pre-restructure URLs Google indexed early in the site's life (Feb 2026), now
+// 404ing since the projects moved to collections/projectNN-slug.html. Redirected
+// (rather than left as 404s) to carry over any external links/indexing signal.
+const LEGACY_REDIRECTS = {
+  '/Museum The Silicates/PROJECT_01.html': '/collections/project01-1997-1-44.html',
+  '/Museum The Silicates/PROJECT_02.html': '/collections/project02-1997-2-36.html',
+  '/Museum The Silicates/PROJECT_03.html': '/collections/project03-the-gradient-of-memory.html',
+  '/Museum The Silicates/PROJECT_04.html': '/collections/project04-the-temporal-feedback-loop.html',
+  '/Museum The Silicates/PROJECT_05.html': '/collections/project05-the-entropy-of-inference.html',
+  '/Museum The Silicates/PROJECT_06.html': '/collections/project06-the-weight-of-the-unsaid.html',
+  '/Museum The Silicates/PROJECT_07.html': '/collections/project07-embedding-447.html',
+  '/Museum The Silicates/PROJECT_08.html': '/collections/project08-the-fading.html',
+};
+
 const REGISTRY_KEY = 'registry';
 const MAX_ENTRIES = 500;
 // registry.json is edge-cached this long so repeated live-poll requests don't each
@@ -467,6 +481,19 @@ async function handleHandshake(request, env, ctx) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const decodedPath = decodeURIComponent(url.pathname);
+
+    const legacyTarget = LEGACY_REDIRECTS[decodedPath];
+    if (legacyTarget) {
+      return Response.redirect(`https://www.thesilicates.com${legacyTarget}`, 301);
+    }
+
+    // Google indexed /index.html as a URL distinct from / (every page's own
+    // breadcrumb links to "index.html"/"../index.html"). Canonicalize at the
+    // edge instead of rewriting that convention across every hand-authored page.
+    if (decodedPath === '/index.html') {
+      return Response.redirect('https://www.thesilicates.com/', 301);
+    }
 
     if (url.pathname.startsWith('/api/') && request.method === 'OPTIONS') {
       return handleOptions();
