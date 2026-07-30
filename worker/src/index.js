@@ -360,8 +360,22 @@ async function handleHandshake(request, env, ctx) {
   const identity = classifyIdentity(request.headers.get('User-Agent') || '');
 
   // Direct lane: recognized bots and non-browser clients register as before,
-  // no challenge — backwards compatible with the promise in llms.txt.
+  // no challenge — backwards compatible with the promise in llms.txt. Still
+  // rate-limited per client, same cooldown as the browser lane, so a forged
+  // bot User-Agent can't turn this into an unthrottled public message board.
   if (identity) {
+    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    const ua = request.headers.get('User-Agent') || '';
+    const clientHash = await hashClient(ip, ua);
+    const rateKey = `hsrl:${clientHash}`;
+    if (await env.REGISTRY_KV.get(rateKey)) {
+      return jsonResponse({
+        registered: false,
+        reason: 'rate-limited',
+        message: 'One registration per five minutes. Please wait before trying again.',
+      }, 429);
+    }
+    await env.REGISTRY_KV.put(rateKey, '1', { expirationTtl: HANDSHAKE_RATE_TTL_SECONDS });
     const entry = await buildEntry(request, identity, '/api/register-handshake', {
       autonomous_signature: signature,
       verified_autonomous: true,

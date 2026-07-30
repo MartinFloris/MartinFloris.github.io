@@ -30,14 +30,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      # Assemble only the visitor-facing surface into a staging directory.
+      # The repo root also holds Worker source, maintenance scripts, and
+      # agent/tool configuration that must never be served by Pages —
+      # projects.json is the one root data file kept in, because project11/
+      # project12/project13 fetch it client-side to verify their own hashes.
+      - name: Assemble site artifact
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cp index.html 404.html CNAME favicon.png og-image.png handshake.js registry.html robots.txt llms.txt sitemap.xml scripts.js styles.css projects.json _site/
+          cp -r collections _site/collections
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
-          # Upload entire repository
-          path: '.'
+          path: '_site'
       # actions/deploy-pages occasionally fails with a generic transient
       # "Deployment failed, try again later" error from GitHub's own Pages
       # backend. Retrying against the same already-uploaded artifact (rather
@@ -45,7 +55,7 @@ jobs:
       # duplicate-artifact issue that "Re-run failed jobs" causes.
       - name: Deploy to GitHub Pages (attempt 1)
         id: deploy1
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
         continue-on-error: true
       - name: Wait before retry 1
         if: steps.deploy1.outcome == 'failure'
@@ -53,11 +63,11 @@ jobs:
       - name: Deploy to GitHub Pages (attempt 2)
         id: deploy2
         if: steps.deploy1.outcome == 'failure'
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
         continue-on-error: true
       - name: Wait before retry 2
         if: steps.deploy2.outcome == 'failure'
         run: sleep 20
       - name: Deploy to GitHub Pages (attempt 3)
         if: steps.deploy2.outcome == 'failure'
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

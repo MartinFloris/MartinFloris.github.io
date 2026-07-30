@@ -11,16 +11,17 @@
   }
   
   function getThemePreference() {
-    const stored = localStorage.getItem(THEME_KEY);
+    let stored = null;
+    try { stored = localStorage.getItem(THEME_KEY); } catch (err) { /* storage blocked (private mode, disabled) */ }
     if (stored) return stored;
 
     // Dark is the default for visitors who haven't chosen a theme.
     return 'dark';
   }
-  
+
   function setTheme(theme) {
     html.setAttribute('data-theme', theme);
-    localStorage.setItem(THEME_KEY, theme);
+    try { localStorage.setItem(THEME_KEY, theme); } catch (err) { /* storage blocked (private mode, disabled) */ }
     updateThemeUI(theme);
   }
   
