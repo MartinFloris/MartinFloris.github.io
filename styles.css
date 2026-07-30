@@ -312,7 +312,6 @@ hr {
     line-height: 1.6;
     color: var(--text-main);
     margin: 0;
-    max-width: 640px;
 }
 @media (prefers-reduced-motion: reduce) {
     .exhibition-card { transition: none; }
