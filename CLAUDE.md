@@ -9,6 +9,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 1. **The static site** (repo root + `collections/`) — deployed to GitHub Pages, no build step.
 2. **`worker/`** — a separate Cloudflare Worker that fronts the live domain, deployed independently via Wrangler (not part of the GitHub Pages workflow).
 
+## Related context
+
+Museum context lives in `context/silicates/`. `canon.md` first, `archive/` only when digging.
+
 ## Commands
 
 There is no npm/build/test tooling in this repo — no `package.json` at any level.
