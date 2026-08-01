@@ -20,3 +20,100 @@ prefix_rule(
         "git push origin main",
     ],
 )
+
+prefix_rule(
+    pattern = ["git", "status"],
+    decision = "allow",
+    justification = "Inspecting working tree state is routine and read-only.",
+    match = [
+        "git status",
+        "git status --short",
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", "diff"],
+    decision = "allow",
+    justification = "Reviewing diffs is routine and read-only.",
+    match = [
+        "git diff",
+        "git diff --stat",
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", "log"],
+    decision = "allow",
+    justification = "Reviewing commit history is routine and read-only.",
+    match = [
+        "git log",
+        "git log --oneline -10",
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", "show"],
+    decision = "allow",
+    justification = "Inspecting a specific commit is routine and read-only.",
+    match = [
+        "git show HEAD",
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", "branch"],
+    decision = "allow",
+    justification = "Listing or inspecting branches is routine and read-only.",
+    match = [
+        "git branch",
+        "git branch --show-current",
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", "add"],
+    decision = "allow",
+    justification = "Staging files is routine and reversible (git restore --staged undoes it).",
+    match = [
+        "git add scripts/check_site.py",
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", "commit"],
+    decision = "allow",
+    justification = "Local commits are routine and reversible; only a push publishes them.",
+    match = [
+        "git commit -m \"Fix typo in project description\"",
+    ],
+)
+
+prefix_rule(
+    pattern = ["ls"],
+    decision = "allow",
+    justification = "Listing directory contents is routine and read-only.",
+    match = [
+        "ls",
+        "ls collections",
+    ],
+)
+
+prefix_rule(
+    pattern = ["cat"],
+    decision = "allow",
+    justification = "Reading a file's contents is routine and read-only.",
+    match = [
+        "cat projects.json",
+    ],
+)
+
+prefix_rule(
+    pattern = ["python", "scripts/"],
+    decision = "allow",
+    justification = "The repo's own maintenance scripts (check_site.py, generate_index.py, new_project.py, etc.) only read and write project files; none deletes anything.",
+    match = [
+        "python scripts/check_site.py",
+        "python scripts/check_site.py --list",
+        "python scripts/generate_index.py",
+    ],
+)
