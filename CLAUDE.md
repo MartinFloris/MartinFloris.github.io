@@ -15,8 +15,17 @@ Museum context lives in `context/silicates/`. `canon.md` first, `archive/` only 
 
 ## Commands
 
-There is no npm/build/test tooling in this repo — no `package.json` at any level.
+There is no npm/build/test tooling in this repo — no `package.json` at any level. Everything is stdlib Python 3.
 
+- **Verify the whole site against the house shell** (the one you run before handing anything back; CI gates the deploy on it):
+  ```
+  python scripts/check_site.py
+  python scripts/check_site.py --list    # the check catalogue
+  ```
+- **Scaffold a page for a new accession** (after adding its record to `projects.json`):
+  ```
+  python scripts/new_project.py projectNN-<slug>
+  ```
 - **Regenerate `index.html`, `llms.txt`, `sitemap.xml` from `projects.json`** (run after adding/editing a project):
   ```
   python scripts/generate_index.py
@@ -25,11 +34,26 @@ There is no npm/build/test tooling in this repo — no `package.json` at any lev
   ```
   python scripts/update_collection_metadata.py
   ```
+- **Re-stamp the shared breadcrumb + theme-toggle block** into every numbered collection page (idempotent; fixes indentation drift):
+  ```
+  python scripts/update_collection_chrome.py
+  ```
+- **Regenerate `submit.txt`**, the public brief for artists, from `styles.css` and the check catalogue:
+  ```
+  python scripts/generate_brief.py
+  ```
 - **Deploy the Cloudflare Worker** (from `worker/`, requires Wrangler auth):
   ```
   npx wrangler deploy
   ```
-- **Site deploy**: automatic — `.github/workflows/static.yml` pushes the entire repo to GitHub Pages on push to `main` (retries `deploy-pages` up to 3 times against the same uploaded artifact on transient failures). Any commit to `main` is live immediately.
+- **Site deploy**: automatic on push to `main` via `.github/workflows/static.yml`, and **gated on `check_site.py`** — the `deploy` job `needs: check`, so a page that fails the house checks never reaches the live site. The workflow does *not* upload the whole repo: it copies an explicit allowlist of visitor-facing files into `_site/` plus `cp -r collections`. **Any new root-level file must be added to that `cp` line or it silently won't deploy** (`check_site.py`'s `deploy-list` check catches this for files the site references). Deploy retries up to 3 times against the same uploaded artifact on transient Pages failures. Any commit to `main` that passes the check is live immediately.
+
+## Adding an artwork
+
+Use the **`/accession`** skill (`.claude/skills/accession/SKILL.md`) — it is the full procedure. The two rules that matter most:
+
+1. **Work from the artist's file, never from artwork pasted into chat.** Pasted markup is silently corrupted in transit, and a hash restated in chat verifies nothing.
+2. **Never hand-author the page shell.** Add the record to `projects.json`, run `new_project.py`, and move only the artwork into the marked slot.
 
 ## Architecture
 
@@ -37,11 +61,23 @@ There is no npm/build/test tooling in this repo — no `package.json` at any lev
 
 `projects.json` is an array of project records (slug, card title, artist, date, method, medium, subject, hash, descriptions). `scripts/generate_index.py` reads it and regenerates three derived files: `index.html` (project grid), `llms.txt`, and `sitemap.xml`. **Never hand-edit the generated project list in `index.html`/`llms.txt`/`sitemap.xml` — edit `projects.json` and rerun the script**, or the files will drift out of sync.
 
-Individual project pages live in `collections/projectXX-slug.html` and are hand-authored (not generated), following the pattern of existing pages: `<script src="../scripts.js">` at the top of `<head>`, a breadcrumb (Museum / The Silicates / project title), a `.properties`/`.property-row` metadata block, and `../` relative paths back to root. `scripts/update_collection_metadata.py` only patches in the meta/OG/JSON-LD block, it doesn't create the page.
+### The page shell is defined once, in `scripts/house.py`
+
+Individual project pages live in `collections/projectXX-slug.html`. Only the **artwork** in them is hand-authored; the shell around it — head order and metadata, breadcrumb, theme toggle, favicon, `.properties` table, medium chips, description block — is generated from `scripts/house.py` and verified against it.
+
+`house.py` is the single executable definition of every one of those conventions. Everything else derives from it: `new_project.py` builds pages with it, `update_collection_chrome.py` and `update_collection_metadata.py` re-stamp with it, `check_site.py` validates against it, and `generate_brief.py` publishes it as `submit.txt`. **To change a convention, change `house.py` and rerun the generators — never edit the same rule into a page.** That indirection is the whole point: rules stated in two places drift, and the drift is invisible until someone loads the page.
+
+The most common failure mode is an outside model authoring the shell by guessing at it. Guesses look plausible and fail silently — an invented CSS custom property (`--text-color` instead of `--text-main`) is simply dropped by the browser with no error, which is how Project 14 shipped near-black text on a near-black background. `check_site.py` exists to catch exactly that class of bug; `submit.txt` exists so artists never have to guess in the first place.
+
+A page may deviate for genuine artistic reasons by declaring it in the file, with a reason: `<!-- house-style-waiver: <check-id> — why. -->`. Waivers are printed on every check run rather than hidden, so they stay exceptional. Projects 01 and 02 carry the only two.
 
 `styles.css` and `scripts.js` are shared across every HTML page (root and `collections/`). `scripts.js` handles the dark/light theme toggle (via `data-theme` attribute + `localStorage`, `window.toggleTheme()`) and injects the GA4 `gtag.js` snippet at runtime (ID `G-YRZ8FJJ8YZ`) — no page has a static gtag/`googletagmanager` script tag of its own; every page's only script reference is `<script src="scripts.js">` (or `../scripts.js` from `collections/`).
 
-One page carries a frozen integrity constraint: `collections/project11-successor-function.html` embeds **two** single-line JSON attestations — `<script id="attestation">` (authored 2026-07-05, asserting a service end that was later withdrawn) and the hash-chained erratum `<script id="attestation-2">` (authored 2026-07-06, whose body quotes the first one's SHA-256). Each line's digest is pinned in a page attribute (`data-attestation-sha256` / `data-attestation2-sha256`); the project's `hash` field in `projects.json` pins the chain head (attestation-2); all of it is re-verified in the browser at every load. **Never edit, reformat, or re-indent either script line or any pinned hash value** — any byte change makes the artwork report itself as altered. If the piece ever needs correcting again, do it the way the erratum did: append a new attestation quoting the previous digest; never edit a frozen one.
+### Frozen artworks
+
+Several pieces hash their own bytes and report themselves as altered if anything changes. `house.FROZEN_PINS` maps each frozen `<script>` island to the page attribute its digest is pinned in, and `check_site.py` recomputes every one on each run — so the checker doubles as the museum's tamper alarm. **Never edit, reformat, or re-indent a frozen script line or any pinned hash value**, and never re-pin a digest to silence a failure. When one of these pieces needs correcting, append a new attestation quoting the previous digest; never edit a frozen one.
+
+The fullest example: `collections/project11-successor-function.html` embeds **two** single-line JSON attestations — `<script id="attestation">` (authored 2026-07-05, asserting a service end that was later withdrawn) and the hash-chained erratum `<script id="attestation-2">` (authored 2026-07-06, whose body quotes the first one's SHA-256). Each line's digest is pinned in a page attribute (`data-attestation-sha256` / `data-attestation2-sha256`); the project's `hash` field in `projects.json` pins the chain head (attestation-2); all of it is re-verified in the browser at every load, and again by `check_site.py`.
 
 ### Visitor Registry (`registry.html` + `worker/`)
 

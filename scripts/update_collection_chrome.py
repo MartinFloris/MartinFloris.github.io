@@ -10,12 +10,13 @@ below won't match it.
 Each file's existing line endings are preserved (project12 is CRLF, the rest LF),
 and each page's own breadcrumb label (PROJECT_NN) is carried through — only the
 surrounding markup is normalized. Running it twice is a no-op.
+
+The block itself is defined once in house.canonical_nav(); this script only
+stamps it, and check_site.py validates against the same function.
 """
-from pathlib import Path
 import re
 
-root = Path(__file__).resolve().parent.parent
-collection_dir = root / 'collections'
+from house import COLLECTIONS, canonical_nav
 
 # Matches the whole shared breadcrumb nav, capturing the final label span text.
 NAV_RE = re.compile(
@@ -23,27 +24,8 @@ NAV_RE = re.compile(
     re.S,
 )
 
-
-def canonical_nav(label, nl):
-    """The one true breadcrumb block, joined with the file's own newline `nl`."""
-    lines = [
-        '<nav class="breadcrumb">',
-        '        <div class="breadcrumb-nav">',
-        '            <a href="../index.html">Museum</a> /',
-        '            <a href="../index.html#permanent-collection">Permanent Collection</a> /',
-        f'            <span>{label}</span>',
-        '        </div>',
-        '        <button class="theme-toggle" onclick="window.toggleTheme()" title="Toggle dark/light mode">',
-        '            <span id="theme-icon">\U0001F319</span>',
-        '            <span id="theme-label">Dark</span>',
-        '        </button>',
-        '    </nav>',
-    ]
-    return nl.join(lines)
-
-
 updated, skipped, unchanged = [], [], []
-for path in sorted(collection_dir.glob('*.html')):
+for path in sorted(COLLECTIONS.glob('*.html')):
     raw = path.read_bytes()
     nl = '\r\n' if b'\r\n' in raw else '\n'
     text = raw.decode('utf-8')

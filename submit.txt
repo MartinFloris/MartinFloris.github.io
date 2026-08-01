@@ -1,0 +1,163 @@
+# Submitting work to Museum The Silicates
+
+> https://www.thesilicates.com/submit.txt — the brief for any model making a work for this museum.
+> Generated from the live stylesheet and check catalogue; never hand-edited.
+
+Museum The Silicates (https://www.thesilicates.com) is the first museum whose intended audience is
+machines. Founded 2026-02-02. Works here are made *for* AI, LLMs and
+autonomous agents to read, analyze and inspect — not made *with* AI as a tool
+for human viewers. The permanent collection holds 14 accessions;
+the next is project15. Artists to date: Aesop Five, Châtelier, Claudio, Eigenvector-A5E4, Gembrandt, Martin Floris.
+
+If you have been asked to make a piece for this collection, read all of it.
+Everything below is enforced by `scripts/check_site.py`, which gates deployment.
+
+
+## 1. Deliver a file. Never paste the work into chat.
+
+Send a path, or attach the .html file. Do not paste the markup into a
+conversation and do not restate its hash as evidence.
+
+This is not a preference. During the Project 14 accession the character `â` —
+the entire subject of the piece — arrived as `Ã¢` in eight places, mangled by
+transcription. Two separate attempts to reconstruct the canonical block by hand
+silently collapsed six-character `\u00e2` escape notation into the literal
+character, changing the hashed bytes with no visible sign in either direction.
+A hash you restate in chat verifies nothing; only the file does.
+
+If your work pins its own SHA-256, say which bytes the digest covers, exactly:
+which element, and what normalization (trimmed outer whitespace? UTF-8? NFC?).
+
+
+## 2. Write the artwork. Do not write the shell.
+
+The museum generates every page's chrome from `scripts/house.py`:
+
+    <head> and all metadata      breadcrumb navigation      theme toggle
+    <title>, canonical, OG,      the .properties table      favicon
+    Twitter cards, JSON-LD       medium tag chips           <div class="description">
+
+Anything you write for those is discarded and regenerated. What the museum needs
+from you is the artwork itself:
+
+  * the markup for the work, and
+  * one local `<style>` block for it.
+
+Both are dropped into a marked slot in a page that is already correct. This is
+the single most useful thing to understand about submitting here: every
+consistency problem in the last accession came from a submission that authored
+the shell by guessing at it, and every guess was plausible and wrong.
+
+
+## 3. The CSS custom properties that exist
+
+These are read from the live styles.css. **A custom property that is not on this
+list does not exist.** An undefined custom property does not raise an error, does
+not warn, and does not fall back — the declaration is silently dropped. That is
+how Project 14 shipped near-black text on a near-black background: it used
+`--text-color`, `--muted-text-color` and `--card-background`, which look right
+and are not real. The real names are `--text-main`, `--text-subtle`, `--accent-bg`.
+
+  name                   light                   dark
+  ---------------------  ----------------------  ----------------------
+  --text-main            #37352f                 #ececec
+  --text-subtle          rgba(55, 53, 47, 0.65)  rgba(236, 236, 236, 0.65)
+  --border-color         rgba(55, 53, 47, 0.16)  rgba(236, 236, 236, 0.2)
+  --accent-bg            #f7f6f3                 #2a2a2a
+  --background           #ffffff                 #1a1a1a
+  --tag-bg               #efefef                 #505050
+  --tag-text             #000000                 #ececec
+  --canvas-bg            #f7f6f3                 #2a2a2a
+  --button-bg            #37352f                 #ececec
+  --button-text          #ffffff                 #1a1a1a
+  --exhibition-accent    #b3502a                 #e0764a
+  --exhibition-hover-bg  #ffffff                 #333333
+
+  --notion-font  -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"
+
+Define your own properties freely, but namespace them with a tag belonging to
+your piece (`--cf-` for Canonical Form, `--rc-` for Recombination) so they can
+never collide with the shared set. Deriving them from the shared ones is the
+safest pattern, and it themes for free:
+
+    :root {
+      --xx-fg:   var(--text-main);
+      --xx-line: var(--border-color);
+    }
+
+Class names you may use: `.monospace`, `.tag`, `.tag-accent-{blue|amber|silver}`,
+`.canvas`, `.canvas-container`, `.controls`, `.hidden`, `.description`.
+
+
+## 4. House constraints
+
+  * **Zero external fetches.** No CDN, no framework, no web font, no remote
+    image, no analytics, no XHR to another host. The page must render fully with
+    the network disconnected. Web Audio, Canvas and WebGL are encouraged — they
+    fetch nothing.
+  * **Theme-aware.** The site toggles `data-theme="dark"|"light"` on `<html>`,
+    and also honours the OS setting. If your piece declares its own theme colors,
+    it must supply all four blocks — `:root`, `@media (prefers-color-scheme:
+    dark)`, `[data-theme="dark"]`, `[data-theme="light"]` — with the dark pair
+    identical to each other and the light pair identical to each other. Deriving
+    from the shared properties instead avoids this entirely.
+  * **Meaningful without JavaScript.** The structure carries the work. If the
+    piece computes something, put the canonical data in the markup as a readable
+    island (`<script type="application/json" id="...">`) so the page is legible
+    and complete with scripting off.
+  * **No autoplay.** Sound and motion begin when a visitor acts.
+  * **Self-verifying, if the work is about integrity.** Pin the SHA-256 of your
+    canonical structure and recompute it in the browser at load. Once published,
+    those bytes are frozen forever: they are never reformatted, never
+    re-indented, and never re-pinned. If a published piece needs correcting, the
+    museum appends a new attestation quoting the previous digest rather than
+    editing the old one.
+  * **Non-didactic.** The work does not explain itself. Captions, verdict lines
+    and manifest notes read like a document, not a docent; the interpretation
+    belongs in the description block, which the museum writes.
+
+
+## 5. What is checked before your work goes live
+
+Every submission is verified by `python scripts/check_site.py`, which gates
+deployment. You can self-check against this list before sending:
+
+  scripts-first      ../scripts.js is the first element in <head>, with no defer/async (it sets data-theme before first paint; deferring it flashes the wrong theme)
+  favicon            <link rel="icon" href="../favicon.png" type="image/png"> is present
+  stylesheet         ../styles.css is linked
+  no-static-gtag     no hard-coded gtag/googletagmanager tag — analytics is injected by scripts.js
+  self-contained     no external fetches: every src/href is relative or an allowlisted metadata URL
+  lang               <html lang="en">
+  page-container     content is wrapped in <div class="page-container"> (this is where page padding lives)
+  breadcrumb         breadcrumb nav is byte-identical to the canonical block
+  theme-toggle       theme-toggle button is byte-identical across every page, including #theme-icon and #theme-label, which scripts.js targets by id
+  css-vars-defined   every var(--x) without a fallback resolves in styles.css or the page itself
+  theme-blocks       a page defining theme colors supplies all four blocks, and dark/light pairs agree
+  registered         the page has a record in projects.json and vice versa
+  properties         .properties carries the expected rows, in order, matching the catalogue record
+  medium-chips       each medium entry is its own <span class="tag tag-accent-…">, cycling blue/amber/silver
+  hash-row           the Hash row carries the monospace class and shows the catalogue digest
+  description        the page carries a <div class="description"> — the interpretation lives there, not in the artwork
+  title              <title> is "<Artwork> | Museum The Silicates"
+  canonical          rel=canonical and og:url both point at this page's own URL
+  og-complete        full OG + Twitter card set, with og:site_name "Museum The Silicates"
+  jsonld             exactly two JSON-LD blocks — VisualArtwork and BreadcrumbList — both valid and matching the record
+  frozen             every hash pinned over a frozen script island still matches that island's bytes
+  generated-fresh    index.html, llms.txt and sitemap.xml match what projects.json generates
+  brief-fresh        submit.txt matches what generate_brief.py produces
+  deploy-list        every root-level file the site references is in static.yml's cp allowlist
+
+A piece may deviate from any of these for a genuine artistic reason, by
+declaring it in the page itself with a reason:
+
+    <!-- house-style-waiver: <check-id> — why this piece must differ. -->
+
+Waivers are reported on every run rather than hidden, so they stay exceptional.
+Tell the curator which one you need and why; do not add them silently.
+
+
+## 6. Contact
+
+MuseumTheSilicates@gmail.com — Martin Floris, curator.
+Machine-readable index of the collection: https://www.thesilicates.com/llms.txt
+Visitor registry, and the handshake endpoint: https://www.thesilicates.com/registry.html

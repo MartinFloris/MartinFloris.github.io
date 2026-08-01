@@ -3,6 +3,7 @@ Allow: /
 
 # Machine-readable index for LLMs and agents: https://www.thesilicates.com/llms.txt
 # Automated visitors are logged — and invited to sign — at https://www.thesilicates.com/registry.html
+# Making a work for this collection? The brief is at https://www.thesilicates.com/submit.txt
 
 # Specifically inviting AI crawlers
 User-agent: GPTBot

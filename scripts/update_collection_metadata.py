@@ -16,42 +16,18 @@ rest of the head are left untouched.
 
 Never touches anything outside <head> — in particular the frozen attestation
 scripts in project11-successor-function.html's body stay byte-identical.
+
+The shape of the managed block is defined once in house.head_block(); this
+script only decides where to put it, and check_site.py validates against the
+same function.
 """
 import html
-import json
 import re
-from pathlib import Path
 
-root = Path(__file__).resolve().parent.parent
-collection_dir = root / 'collections'
+from house import (COLLECTIONS, LLMS_LINK_HREF, OG_IMAGE, SITE_NAME, TITLE_SUFFIX,
+                   esc, head_block, projects_by_slug)
 
-BASE_URL = 'https://www.thesilicates.com'
-SITE_NAME = 'Museum The Silicates'
-TITLE_SUFFIX = ' | Museum The Silicates'
-OG_IMAGE = f'{BASE_URL}/og-image.png'
-LLMS_LINK_HREF = f'{BASE_URL}/llms.txt'
-MUSEUM_ID = f'{BASE_URL}/#museum'
-
-projects = {p['slug']: p for p in json.loads((root / 'projects.json').read_text(encoding='utf-8'))}
-
-
-def esc(s):
-    # Escapes &, <, > and " so values are safe in double-quoted attributes.
-    return (str(s).replace('&', '&amp;').replace('<', '&lt;')
-            .replace('>', '&gt;').replace('"', '&quot;'))
-
-
-def normalize_date(d):
-    # projects.json dates are mixed-format ('2026-2-2' vs '2026-07-05').
-    year, month, day = str(d).split('-')
-    return f'{int(year):04d}-{int(month):02d}-{int(day):02d}'
-
-
-def ld_script(obj):
-    # JSON-LD via json.dumps so quotes/dashes in curatorial copy can't break it.
-    body = json.dumps(obj, ensure_ascii=False, indent=2)
-    body = '\n'.join('    ' + line for line in body.splitlines())
-    return f'    <script type="application/ld+json">\n{body}\n    </script>\n'
+projects = projects_by_slug()
 
 
 def grab(pattern, text):
@@ -62,67 +38,17 @@ def grab(pattern, text):
 def rebuild_page(text, slug, desc_match, title_match):
     """Full rebuild of the managed block between the description meta and <title>."""
     description = desc_match.group(1).strip()
-    head_block = text[desc_match.end():title_match.start()]
+    existing = text[desc_match.end():title_match.start()]
     title_text = title_match.group(1).strip()
     artwork = title_text[:-len(TITLE_SUFFIX)] if title_text.endswith(TITLE_SUFFIX) else title_text
-    url = f'{BASE_URL}/collections/{slug}'
 
     # Preserve hand-tuned social copy verbatim; og and twitter independently.
-    og_title = grab(r'<meta property="og:title" content="(.*?)">', head_block) or artwork
-    og_desc = grab(r'<meta property="og:description" content="(.*?)">', head_block) or description
-    tw_title = grab(r'<meta name="twitter:title" content="(.*?)">', head_block) or og_title
-    tw_desc = grab(r'<meta name="twitter:description" content="(.*?)">', head_block) or og_desc
-
-    record = projects.get(slug)
-    if record:
-        scripts = ld_script({
-            '@context': 'https://schema.org',
-            '@type': 'VisualArtwork',
-            'name': html.unescape(artwork),
-            'description': html.unescape(description),
-            'url': url,
-            'creator': {'@type': 'Person', 'name': record['artist']},
-            'dateCreated': normalize_date(record['date']),
-            'artMedium': record['medium'],
-            'about': record['subject'],
-            'isPartOf': {'@type': 'Museum', '@id': MUSEUM_ID, 'name': SITE_NAME},
-        }) + ld_script({
-            '@context': 'https://schema.org',
-            '@type': 'BreadcrumbList',
-            'itemListElement': [
-                {'@type': 'ListItem', 'position': 1, 'name': SITE_NAME, 'item': f'{BASE_URL}/'},
-                {'@type': 'ListItem', 'position': 2, 'name': html.unescape(artwork), 'item': url},
-            ],
-        })
-    else:
-        # No catalogue record (none currently) — keep a plain WebPage node.
-        scripts = ld_script({
-            '@context': 'https://schema.org',
-            '@type': 'WebPage',
-            'name': html.unescape(artwork),
-            'description': html.unescape(description),
-            'url': url,
-        })
-
-    image_alt = f'{html.unescape(artwork)} — {SITE_NAME}'
-    block = (
-        f'    <link rel="canonical" href="{url}">\n'
-        f'    <link rel="alternate" type="text/plain" title="LLM-readable index" href="{LLMS_LINK_HREF}">\n'
-        f'    <meta property="og:title" content="{og_title}">\n'
-        f'    <meta property="og:description" content="{og_desc}">\n'
-        f'    <meta property="og:url" content="{url}">\n'
-        f'    <meta property="og:type" content="website">\n'
-        f'    <meta property="og:site_name" content="{SITE_NAME}">\n'
-        f'    <meta property="og:image" content="{OG_IMAGE}">\n'
-        f'    <meta property="og:image:width" content="1200">\n'
-        f'    <meta property="og:image:height" content="630">\n'
-        f'    <meta property="og:image:alt" content="{esc(image_alt)}">\n'
-        f'    <meta name="twitter:card" content="summary_large_image">\n'
-        f'    <meta name="twitter:title" content="{tw_title}">\n'
-        f'    <meta name="twitter:description" content="{tw_desc}">\n'
-        f'    <meta name="twitter:image" content="{OG_IMAGE}">\n'
-        f'{scripts}'
-        f'    <title>{artwork}{TITLE_SUFFIX}</title>'
+    block = head_block(
+        slug, artwork, description, projects.get(slug),
+        og_title=grab(r'<meta property="og:title" content="(.*?)">', existing),
+        og_desc=grab(r'<meta property="og:description" content="(.*?)">', existing),
+        tw_title=grab(r'<meta name="twitter:title" content="(.*?)">', existing),
+        tw_desc=grab(r'<meta name="twitter:description" content="(.*?)">', existing),
     )
     return text[:desc_match.end()] + '\n' + block + text[title_match.end():]
 
@@ -168,7 +94,7 @@ def light_touch_page(text, slug, title_match):
 
 updated = []
 skipped = []
-for path in sorted(collection_dir.glob('*.html')):
+for path in sorted(COLLECTIONS.glob('*.html')):
     text = path.read_text(encoding='utf-8')
     title_match = re.search(r'<title>(.*?)</title>', text, re.S)
     desc_match = re.search(r'<meta name="description" content="(.*?)">', text, re.S)
@@ -177,9 +103,9 @@ for path in sorted(collection_dir.glob('*.html')):
         continue
 
     standard_shape = desc_match.end() <= title_match.start()
-    head_block = text[desc_match.end():title_match.start()] if standard_shape else ''
-    hand_authored_ld = ('<script type="application/ld+json"' in head_block
-                        and '"@type": "WebPage"' not in head_block) or not standard_shape
+    managed = text[desc_match.end():title_match.start()] if standard_shape else ''
+    hand_authored_ld = ('<script type="application/ld+json"' in managed
+                        and '"@type": "WebPage"' not in managed) or not standard_shape
 
     if hand_authored_ld:
         new_text = light_touch_page(text, path.name, title_match)

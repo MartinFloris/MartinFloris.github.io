@@ -22,8 +22,23 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Gate the deploy on the house-style checks. A page can be valid HTML with a
+  # correct hash and still ship a dead theme toggle or invisible dark-mode text;
+  # scripts/check_site.py catches that class of bug, so a failure here keeps it
+  # off the live site rather than reporting it afterwards.
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      # No setup-python step: the scripts are stdlib-only and ubuntu-latest
+      # already ships a current Python 3, so this needs no extra pinned action.
+      - name: Check site against the house shell
+        run: python3 scripts/check_site.py
+
   # Single deploy job since we're just deploying
   deploy:
+    needs: check
     environment:
       name: github-pages
       url: https://www.thesilicates.com/
@@ -42,7 +57,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p _site
-          cp index.html 404.html CNAME favicon.png og-image.png handshake.js registry.html robots.txt llms.txt sitemap.xml scripts.js styles.css projects.json _site/
+          cp index.html 404.html CNAME favicon.png og-image.png handshake.js registry.html robots.txt llms.txt sitemap.xml submit.txt scripts.js styles.css projects.json _site/
           cp -r collections _site/collections
       - name: Upload artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3

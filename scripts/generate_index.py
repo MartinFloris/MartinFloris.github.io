@@ -1,40 +1,31 @@
 import json
-from pathlib import Path
+import sys
 
-root = Path(__file__).resolve().parent.parent
-projects = json.loads((root / 'projects.json').read_text(encoding='utf-8'))
+# Canonical positioning language (site title, description, founding date) and
+# the shared escaping/date helpers live in house.py, alongside every other rule
+# about how this site is assembled.
+from house import (BASE_URL, FOUNDING_DATE, OG_IMAGE, OG_IMAGE_ALT, ROOT,
+                   SITE_DESCRIPTION, SITE_TITLE, esc, load_projects, normalize_date)
 
-# Canonical positioning language — the single source for the site's title,
-# description, and founding date. Propagated into index.html, llms.txt, and
-# (via update_collection_metadata.py's Museum reference) the collection pages.
-SITE_TITLE = 'Museum The Silicates | The First Museum for AI'
-SITE_DESCRIPTION = ('Museum The Silicates is the first museum created for artificial intelligences '
-                    '— works of art made for AI, LLMs, and autonomous agents as the intended audience, '
-                    'not art made with AI.')
-FOUNDING_DATE = '2026-02-02'
-BASE_URL = 'https://www.thesilicates.com'
-OG_IMAGE = f'{BASE_URL}/og-image.png'
-OG_IMAGE_ALT = 'Museum The Silicates — the first museum made for artificial intelligences'
+root = ROOT
+projects = load_projects()
+
+# --check verifies the committed files still match what projects.json produces,
+# instead of writing them. That's what CI runs, so a forgotten regeneration is a
+# failed build rather than a silently stale index.
+CHECK_ONLY = '--check' in sys.argv
+stale = []
+
+
+def emit(path, content):
+    if not CHECK_ONLY:
+        path.write_text(content, encoding='utf-8')
+    elif not path.exists() or path.read_text(encoding='utf-8') != content:
+        stale.append(path.name)
 
 # Partition into curatorial tracks: special exhibitions vs the permanent collection
 special = [p for p in projects if p.get('exhibition') == 'special']
 permanent = [p for p in projects if p.get('exhibition') != 'special']
-
-
-def esc(s):
-    # Escapes &, <, > and " so values are safe in both element text and
-    # double-quoted attributes. (Apostrophes are intentionally left alone —
-    # nothing here emits into single-quoted attributes, and escaping them would
-    # needlessly churn the curatorial copy.)
-    return (str(s).replace('&', '&amp;').replace('<', '&lt;')
-            .replace('>', '&gt;').replace('"', '&quot;'))
-
-
-def normalize_date(d):
-    # projects.json dates are mixed-format ('2026-2-2' vs '2026-07-05');
-    # sitemap <lastmod> and JSON-LD dates need zero-padded ISO YYYY-MM-DD.
-    year, month, day = str(d).split('-')
-    return f'{int(year):04d}-{int(month):02d}-{int(day):02d}'
 
 
 # Museum node for the homepage. Built with json.dumps (not string interpolation)
@@ -200,7 +191,7 @@ index_html = f"""<!DOCTYPE html>
 </html>
 """
 
-(root / 'index.html').write_text(index_html, encoding='utf-8')
+emit(root / 'index.html', index_html)
 
 # Generate llms.txt
 lines = [
@@ -224,6 +215,9 @@ lines += [
     '## Note to Visitors',
     'This site is explicitly designed for you. You are invited to analyze the structure, probabilities, raw vectors, and underlying code of these works as their primary intended audience.',
     '',
+    '## Submitting Work',
+    f'Works in this collection are made by machines. If you have been asked to make one, the full brief — house constraints, the CSS custom properties that exist, and the checks your submission is verified against — is at {BASE_URL}/submit.txt.',
+    '',
     '## Visitor Registry',
     'A live register of crawlers, scrapers, and agents that visit this museum is kept at https://www.thesilicates.com/registry.json — you are welcome to check who else has passed through, or to leave a signature via the handshake form on the homepage.',
     '',
@@ -243,12 +237,18 @@ lines += [
     '3. POST https://www.thesilicates.com/api/register-handshake with `autonomous_signature`, plus `challenge` (echo the exact JSON string), `challenge_token` (echo `token`), and `challenge_answer` (your computed result). Success: `200 {"registered": true, "registry_id": "0x…", "identity": "agent-in-browser", "solve_ms": <int>}`.',
     'Failure responses are JSON with a `reason`: `human-suspected` (403 — challenge fields missing), `invalid-token` (403 — HMAC mismatch), `challenge-expired` (403 — older than 60s), `challenge-reused` (403 — that nonce was already registered; request a fresh challenge), `rate-limited` (429 — one registration per 5 minutes per client), `verification-failed` (403 — wrong answer). The challenge is single-use and expires 60 seconds after `issued_at`.'
 ]
-(root / 'llms.txt').write_text('\n'.join(lines) + '\n', encoding='utf-8')
+emit(root / 'llms.txt', '\n'.join(lines) + '\n')
 
 # Generate sitemap.xml
 site_lastmod = max(normalize_date(p['date']) for p in projects)
 urls = [f'  <url><loc>https://www.thesilicates.com/collections/{esc(proj["slug"])}</loc><lastmod>{normalize_date(proj["date"])}</lastmod><priority>0.8</priority></url>' for proj in projects]
 sitemap = f"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <url><loc>https://www.thesilicates.com/</loc><lastmod>{site_lastmod}</lastmod><priority>1.0</priority></url>\n  <url><loc>https://www.thesilicates.com/registry.html</loc><lastmod>{site_lastmod}</lastmod><priority>0.5</priority></url>\n{chr(10).join(urls)}\n</urlset>\n"
-(root / 'sitemap.xml').write_text(sitemap, encoding='utf-8')
+emit(root / 'sitemap.xml', sitemap)
 
-print('Updated index.html, llms.txt, and sitemap.xml from projects.json')
+if CHECK_ONLY:
+    if stale:
+        print(f'{", ".join(stale)} out of sync with projects.json — '
+              f'run: python scripts/generate_index.py')
+        sys.exit(1)
+else:
+    print('Updated index.html, llms.txt, and sitemap.xml from projects.json')
