@@ -10,6 +10,13 @@
             "commandWindows": "powershell -NoProfile -Command \"$root = git rev-parse --show-toplevel; node (Join-Path $root '.codex/hooks/block-dangerous-commands.js')\"",
             "timeout": 10,
             "statusMessage": "Safety check"
+          },
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/block-young-packages.js\"",
+            "commandWindows": "powershell -NoProfile -Command \"$root = git rev-parse --show-toplevel; node (Join-Path $root '.codex/hooks/block-young-packages.js')\"",
+            "timeout": 15,
+            "statusMessage": "Package age check"
           }
         ]
       }
