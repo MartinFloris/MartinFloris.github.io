@@ -13,6 +13,6 @@ Do not duplicate that guidance here: keeping a single canonical project descript
 - Repository-local Codex hooks and command rules live under `.codex/` and require the repository to be trusted.
 - The pre-tool hook blocks destructive shell operations such as recursive forced deletion, force pushes, remote-branch deletion, hard resets, forced Git cleans, broad checkout-based discards, and piping downloads directly into interpreters.
 - Normal `git push` and `gh run ...` commands are allowed by the repository command rules. Never force-push.
-- Pushing `main` publishes the static site as soon as CI passes. The deploy is gated: `.github/workflows/static.yml` runs `python scripts/check_site.py` in a `check` job that `deploy` depends on, so a push that fails the house-style checks publishes nothing and the live site stays on the previous commit. Run `python scripts/check_site.py` locally before pushing. Treat any push or deployment as an external side effect: only do it when the user's request authorizes it.
-- Changes under `worker/` are not deployed by a GitHub Pages push; deploy them separately with Wrangler only when explicitly requested.
+- Pushing `main` publishes the static site. How the deploy is gated, and why `worker/` deploys on a separate path, are described in `CLAUDE.md` (the `Site deploy` bullet under Commands, and `Deployment independence`) — read them there rather than relying on a summary in this file.
+- Run `python scripts/check_site.py` locally before pushing. Treat any push or deployment as an external side effect: only do it when the user's request authorizes it, and never run a Wrangler deploy unless explicitly asked.
 
