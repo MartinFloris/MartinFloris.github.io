@@ -9,3 +9,11 @@ routes = [
 [[kv_namespaces]]
 binding = "REGISTRY_KV"
 id = "cadf3e495730418d90dbf2001984b9b5"
+
+[[durable_objects.bindings]]
+name = "REGISTRY_STORE"
+class_name = "RegistryStore"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RegistryStore"]

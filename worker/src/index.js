@@ -91,10 +91,9 @@ const LEGACY_REDIRECTS = {
   '/Museum The Silicates/PROJECT_08.html': '/collections/project08-the-fading.html',
 };
 
-const REGISTRY_KEY = 'registry';
 const MAX_ENTRIES = 500;
 // registry.json is edge-cached this long so repeated live-poll requests don't each
-// hit KV; kept short since new visits should still surface quickly.
+// hit the Durable Object; kept short since new visits should still surface quickly.
 const REGISTRY_CACHE_SECONDS = 15;
 
 // Handshake challenge tuning.
@@ -148,18 +147,66 @@ function networkInfo(request, identity) {
   return { asn, org, verified };
 }
 
+// Registry entries live in the RegistryStore Durable Object (defined below), not KV directly.
+// A Durable Object's own storage has no KV-style daily write-operation cap, so every visit
+// can write straight through — no batching needed. KV is still used elsewhere in this file
+// for the handshake rate-limit and nonce keys, which are low-volume.
+function registryStoreStub(env) {
+  const id = env.REGISTRY_STORE.idFromName('registry');
+  return env.REGISTRY_STORE.get(id);
+}
+
 async function appendEntry(env, entry) {
   try {
-    const raw = await env.REGISTRY_KV.get(REGISTRY_KEY);
-    let entries = [];
-    if (raw) {
-      try { entries = JSON.parse(raw); } catch (err) { entries = []; }
-    }
-    entries.push(entry);
-    if (entries.length > MAX_ENTRIES) entries = entries.slice(-MAX_ENTRIES);
-    await env.REGISTRY_KV.put(REGISTRY_KEY, JSON.stringify(entries));
+    await registryStoreStub(env).fetch('https://registry-store/append', {
+      method: 'POST',
+      body: JSON.stringify(entry),
+    });
   } catch (err) {
-    // KV write failed — drop this entry rather than break a request already served to the visitor
+    // Durable Object write failed — drop this entry rather than break a request already served to the visitor
+  }
+}
+
+// Most recent `limit` entries, oldest-first (the shape registry.html expects).
+async function recentEntries(env, limit) {
+  const res = await registryStoreStub(env).fetch(`https://registry-store/recent?limit=${limit}`);
+  return res.json();
+}
+
+// Durable Object holding the registry log itself. A single named instance (see
+// registryStoreStub) receives every append/read, so all edge locations agree on one
+// ordered log with no cross-isolate races — unlike raw KV's non-atomic get-then-put.
+export class RegistryStore {
+  constructor(state) {
+    this.storage = state.storage;
+  }
+
+  async fetch(request) {
+    const url = new URL(request.url);
+
+    if (request.method === 'POST' && url.pathname === '/append') {
+      const entry = await request.json();
+      const key = `e:${Date.now().toString().padStart(14, '0')}:${crypto.randomUUID()}`;
+      await this.storage.put(key, entry);
+
+      const all = await this.storage.list({ prefix: 'e:' });
+      const keys = [...all.keys()];
+      if (keys.length > MAX_ENTRIES) {
+        await this.storage.delete(keys.slice(0, keys.length - MAX_ENTRIES));
+      }
+      return new Response('ok');
+    }
+
+    if (request.method === 'GET' && url.pathname === '/recent') {
+      const limit = Number(url.searchParams.get('limit')) || MAX_ENTRIES;
+      const all = await this.storage.list({ prefix: 'e:' }); // key prefix sorts chronologically
+      const entries = [...all.values()];
+      return new Response(JSON.stringify(entries.slice(-limit)), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    return new Response('not found', { status: 404 });
   }
 }
 
@@ -198,15 +245,14 @@ async function logVisit(request, env, identity, url) {
 
 async function handleRegistryGet(request, env, ctx) {
   // Serve a recent edge-cached copy when we have one, so the frequent live-poll
-  // requests from open registry pages don't each cost a KV read.
+  // requests from open registry pages don't each cost a Durable Object read.
   const cache = caches.default;
   const cached = await cache.match(request);
   if (cached) return cached;
 
   let entries = [];
   try {
-    const raw = await env.REGISTRY_KV.get(REGISTRY_KEY);
-    if (raw) entries = JSON.parse(raw);
+    entries = await recentEntries(env, MAX_ENTRIES);
   } catch (err) {
     entries = [];
   }
