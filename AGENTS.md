@@ -10,10 +10,8 @@ Do not duplicate that guidance here: keeping a single canonical project descript
 
 ## Codex-specific safety and permissions
 
-- Repository-local Codex hooks and command rules live under `.codex/` and require the repository to be trusted.
-- The pre-tool hook blocks destructive shell operations such as recursive forced deletion, force pushes, remote-branch deletion, hard resets, forced Git cleans, broad checkout-based discards, and piping downloads directly into interpreters.
-- A second pre-tool hook (`block-young-packages.js`) blocks `npm install`/`npm i` of any package version published less than 14 days ago (checked live against the npm registry), as a supply-chain guard against typosquats and compromised releases. It fails open if the registry is unreachable or the version is ambiguous (e.g. an unresolved semver range).
-- Normal `git push` and `gh run ...` commands are allowed by the repository command rules. Never force-push.
+- Repository-local Codex hooks and command rules live under `.codex/` and require the repository to be trusted. See global `~/.codex/AGENTS.md` for the agent safety policy and push/deployment discipline these hooks enforce.
+- Normal `git push` and `gh run ...` commands are allowed by the repository command rules.
 - Pushing `main` publishes the static site. How the deploy is gated, and why `worker/` deploys on a separate path, are described in `CLAUDE.md` (the `Site deploy` bullet under Commands, and `Deployment independence`) — read them there rather than relying on a summary in this file.
-- Run `python scripts/check_site.py` locally before pushing. Treat any push or deployment as an external side effect: only do it when the user's request authorizes it, and never run a Wrangler deploy unless explicitly asked.
+- Run `python scripts/check_site.py` locally before pushing, and never run a Wrangler deploy unless explicitly asked.
 
