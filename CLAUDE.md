@@ -13,6 +13,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Museum context lives in `context/silicates/`. `canon.md` first, `archive/` only when digging.
 
+## Repo status
+
+Branch protection on `main` enabled 2026-08-23: PRs required to merge, direct pushes blocked (including for admins), squash-merge only, branches auto-delete on merge. See the global `~/.claude/CLAUDE.md` "Branch workflow" section for the actual conventions (branch naming, PR-then-merge flow).
+
 ## Commands
 
 There is no npm/build/test tooling in this repo — no `package.json` at any level. Everything is stdlib Python 3.
