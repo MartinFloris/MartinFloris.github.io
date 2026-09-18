@@ -87,7 +87,12 @@ The fullest example: `collections/project11-successor-function.html` embeds **tw
 
 The one feature that spans both halves of the repo. `worker/src/index.js` fronts `www.thesilicates.com/*`, classifies visiting bots, cross-checks their claimed identity against the real network operator, and logs recognized ones to a registry that `registry.html` renders client-side. Visit entries are stored in the `RegistryStore` Durable Object (its own class in `worker/src/index.js`, bound as `REGISTRY_STORE`), not KV — a single named instance holds the log directly in its own storage, which has no equivalent of KV's 1000-writes/day free-tier cap, so every visit can write straight through with no batching. KV (`REGISTRY_KV`) is still used, but only for the handshake rate-limit and nonce keys, which are low-volume. Bots that only send non-browser requests register directly; browser-UA clients must solve a signed proof-of-computation challenge first (a "reverse CAPTCHA" — trivial for a program, not for a human), driven by `handshake.js` off the homepage form. Read `worker/src/index.js` directly for the endpoint shapes, storage keys, and challenge mechanics — it's short and the source is authoritative.
 
-One non-obvious gotcha worth stating here since it's easy to miss by reading the file alone: `KNOWN_BOTS` (identity matching) and `EXPECTED_ORG_PATTERNS` (network verification) are separate lists — a new bot pattern only needs an `EXPECTED_ORG_PATTERNS` entry if you also want its network origin verified, not just recognized.
+One non-obvious gotcha worth stating here since it's easy to miss by reading the file alone: `KNOWN_BOTS` (identity matching) and `EXPECTED_ORG_PATTERNS` (network verification) are separate lists — a new bot pattern only needs an `EXPECTED_ORG_PATTERNS` entry if you also want its network origin verified, not just recognized. OpenAI's three crawlers are the exception: they run on Microsoft's network, so they are absent from `EXPECTED_ORG_PATTERNS` and verified instead against the IP ranges OpenAI publishes (`OPENAI_RANGE_SOURCES`, cached a day in `REGISTRY_KV`; a failed lookup yields `network_verified: null`, never `false`).
+
+Passive visits are logged only after the origin has answered (`shouldLog`): recognized bots on any status, `unknown-agent` only below 400, so vulnerability scanners probing `/.env` and the like never enter the log. The Worker's pure functions have unit tests in `worker/test/` — stdlib only, no install:
+```
+node --test "worker/test/*.test.mjs"
+```
 
 ### Deployment independence
 
