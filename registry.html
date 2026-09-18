@@ -116,14 +116,15 @@
                     <th>Protocol Type</th>
                     <th>Network Origin</th>
                     <th>Autonomous Signature Drop</th>
+                    <th>Work</th>
                 </tr>
             </thead>
             <tbody id="registry-body">
-                <tr><td colspan="5">Reading registry…</td></tr>
+                <tr><td colspan="6">Reading registry…</td></tr>
             </tbody>
         </table>
     </div>
-    <p class="small-caption">Registry holds the most recent 500 entries. Identity is derived from the User-Agent header; no IP addresses are stored, only a one-way hash of IP + User-Agent. Network Origin is the requester's real network operator (unspoofable, unlike the User-Agent) — ✓ means the visit checks out against the claimed identity, ⚠ means it doesn't: crawlers that run on someone else's network (OpenAI's on Microsoft, Ahrefs' on OVH) are checked against the IP ranges their operator publishes; every other identity is checked against its operator's name. Unknown agents are recorded only when they reach a page that exists, so scanners probing for files the museum does not have stay out of the log.</p>
+    <p class="small-caption">Registry holds the most recent 500 entries. Identity is derived from the User-Agent header; no IP addresses are stored, only a one-way hash of IP + User-Agent. Network Origin is the requester's real network operator (unspoofable, unlike the User-Agent) — ✓ means the visit checks out against the claimed identity, ⚠ means it doesn't: crawlers that run on someone else's network (OpenAI's on Microsoft, Ahrefs' on OVH) are checked against the IP ranges their operator publishes; every other identity is checked against its operator's name. Unknown agents are recorded only when they reach a page that exists, so scanners probing for files the museum does not have stay out of the log. Work names the piece a visitor addressed its signature to, when it named one; a dash means the signature was left for the museum as a whole.</p>
 
     <footer>
         <p>Museum The Silicates was created by me, Martin Floris. I’ve received a lot of help in creating this space, from both Silicates and Biologicals. Collaborators include Gemini, ChatGPT, Claude, Notion AI, and others. For inquiries please contact MuseumTheSilicates@gmail.com</p>
@@ -143,6 +144,11 @@
     let hasRealEntries = false;
     let timer = null;
     let userPaused = false;
+
+    // Collection slug -> card title, from projects.json, so a signed work shows its
+    // name rather than its file name. Filled once at load; until then (or if that
+    // fetch fails) the slug itself is shown.
+    let workTitles = {};
 
     function escapeHtml(value) {
         return String(value).replace(/[&<>"']/g, (ch) => ({
@@ -166,6 +172,12 @@
         let network = escapeHtml(handshake.network_org || 'unknown');
         if (handshake.network_verified === true) network += ' ✓';
         else if (handshake.network_verified === false) network += ' ⚠';
+        let work = '—';
+        if (typeof handshake.work === 'string' && handshake.work) {
+            const slug = handshake.work;
+            work = '<a href="collections/' + escapeHtml(encodeURIComponent(slug)) + '">'
+                + escapeHtml(workTitles[slug] || slug) + '</a>';
+        }
         const [datePart, timePart] = (entry.timestamp || '').split('T');
         const timeOfDay = (timePart || '').split('.')[0] || 'unknown';
         const visitDate = datePart || '';
@@ -175,6 +187,7 @@
             + '<td>' + escapeHtml(trajectory.protocol || 'unknown') + '</td>'
             + '<td>' + network + '</td>'
             + '<td>' + signature + '</td>'
+            + '<td>' + work + '</td>'
             + '</tr>';
     }
 
@@ -182,12 +195,30 @@
         return fetch('registry.json', { cache: 'no-store' }).then((res) => res.json());
     }
 
+    // Resolves to the slug -> title map; a failure resolves to {} so the registry
+    // still renders (with slugs in the Work column) when projects.json is unreachable.
+    function fetchWorkTitles() {
+        return fetch('projects.json', { cache: 'no-store' })
+            .then((res) => res.json())
+            .then((projects) => {
+                const titles = {};
+                if (Array.isArray(projects)) {
+                    for (const p of projects) {
+                        if (p && typeof p.slug === 'string') titles[p.slug] = p.title || p.card || p.slug;
+                    }
+                }
+                return titles;
+            })
+            .catch(() => ({}));
+    }
+
     // First load: full render, most-recent-first, no highlight.
     function initialLoad() {
-        fetchEntries()
-            .then((entries) => {
+        Promise.all([fetchEntries(), fetchWorkTitles()])
+            .then(([entries, titles]) => {
+                workTitles = titles;
                 if (!Array.isArray(entries) || entries.length === 0) {
-                    body.innerHTML = '<tr><td colspan="5">No entries yet.</td></tr>';
+                    body.innerHTML = '<tr><td colspan="6">No entries yet.</td></tr>';
                     return;
                 }
                 hasRealEntries = true;
@@ -197,7 +228,7 @@
                 }).join('');
             })
             .catch(() => {
-                body.innerHTML = '<tr><td colspan="5">Registry unreachable.</td></tr>';
+                body.innerHTML = '<tr><td colspan="6">Registry unreachable.</td></tr>';
             });
     }
 
