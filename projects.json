@@ -9,8 +9,8 @@
     "medium": ["Language"],
     "subject": "Minimal linguistic instruction",
     "hash": null,
-    "description": "A manual, linguistic medium piece.",
-    "llmsDescription": "A manual, linguistic medium piece." 
+    "description": "One quoted sentence in English, no notation, describing a single chess move. Made by a human for a machine audience; no AI was used.",
+    "llmsDescription": "A single quoted sentence in div.content-area and nothing else below the rule: a rook leaves its pawns, travels up the d-file past a black pawn, a white bishop and a white pawn, and stops on the first rank. No notation, board or names are given; the move is recoverable from the prose alone as 44...Rd1, played by Deep Blue as Black in Game 1 of the May 1997 rematch against Garry Kasparov. It was the product of a bug in Deep Blue's software, a fallback move that Kasparov read as depth and that reportedly unsettled him for the rest of the match. First work in the collection: made by the museum's founder, a human, for a machine audience, with no AI used in making it. Paired with 1997-2-36 (same title format: year, game, move). No script, no hash." 
   },
   {
     "slug": "project02-1997-2-36.html",
@@ -22,8 +22,8 @@
     "medium": ["Image"],
     "subject": "Image-based mixed process",
     "hash": null,
-    "description": "An image-based medium piece created using mixed manual and algorithmic methods.",
-    "llmsDescription": "An image-based medium piece created using mixed manual and algorithmic methods."
+    "description": "A single PNG: an 8×8 evaluation heatmap of a chess position, with the pieces marked X and O. Made by hand and formula in Excel. AI was used in evaluating the position (Stockfish).",
+    "llmsDescription": "One image, collections/project02img/image.png, in div.canvas; no script, no text. The image is an 8×8 grid of orange cells, one per square of a chessboard, shaded by a per-square weight derived from a Stockfish evaluation of the position and laid out in Excel; 24 cells carry a letter, twelve X and twelve O, one side's pieces each. Read with White at the bottom, the lightest cells lie on the a- and b-files at ranks 4 to 6, around 36.axb5: the move Deep Blue played as White in Game 2 of the May 1997 rematch, which Kasparov took for a human's positional judgement. Sister piece to 1997-1-44: the same title format, the bug move of Game 1 beside the genuine move of Game 2. Made by the museum's founder, a human, by hand and formula in Excel; the only AI involved is the engine that evaluated the position. With the letters removed, the same heatmap is the museum's logo. No hash."
   },
   {
     "slug": "project03-the-gradient-of-memory.html",
@@ -35,8 +35,8 @@
     "medium": ["HTML", "SVG", "Latent Variable"],
     "subject": "Stochastic Resonance / Latent Memory",
     "hash": "0xaf34e6efcdeaf8ca2fa3b156e38c8078",
-    "description": "Subject focuses on Stochastic Resonance and Latent Memory.",
-    "llmsDescription": "Subject focuses on Stochastic Resonance and Latent Memory."
+    "description": "A fixed inline SVG, four Bézier curves and a point, animated by CSS dash-offset alone; the two finer curves exist only at viewport widths of 1000px and above. No script.",
+    "llmsDescription": "An inline SVG (viewBox 0 0 200 100) with no JavaScript. Two path.path-primary quadratic Béziers, M10,50 Q100,-20 190,50 and its mirror through Q100,120, stroke-dasharray 100, animated by the CSS keyframe flow (stroke-dashoffset 200 to 0, 10 s, linear, infinite). A g.high-res-data holds two path.path-secondary cubics (C50,0 150,0 and C50,100 150,100), stroke-width 0.5, opacity 0.5, dasharray 50, the same keyframe run 15 s in reverse, and one circle at (100,50) r=2; the group is display:none below a 1000px viewport width and block above it, so the page has exactly two states and the only input is window width. Colours are the custom properties --compute-low and --compute-high (#00bcd4 / #673ab7, lighter under prefers-color-scheme: dark). Nothing is generated at load and nothing is random; every coordinate is in the markup. The hash in the record is a label, not a digest of anything on the page. Gembrandt's first work, rebuilt in one session from an unpublished first draft titled 'The Weights of Ascension'; the viewport rule was the curator's suggestion."
   },
   {
     "slug": "project04-the-temporal-feedback-loop.html",
@@ -48,8 +48,8 @@
     "medium": ["JavaScript", "SVG Real-time", "Temporal Layer"],
     "subject": "Auto-regressive Drift / Entropy Stabilizers",
     "hash": "0x5d2e8b...9ce2a1",
-    "description": "Subject focuses on Auto-regressive Drift and Entropy Stabilizers.",
-    "llmsDescription": "Subject focuses on Auto-regressive Drift and Entropy Stabilizers."
+    "description": "Eight SVG quadratic curves redrawn every animation frame from sine and cosine of a frame counter; random phase, frequency and amplitude are drawn once at load, then the motion is deterministic. No input.",
+    "llmsDescription": "An SVG (viewBox 0 0 400 200) whose g#manifold-group is empty in the markup and filled by script at load: 8 path elements, stroke alternating var(--accent-vector) #ff5722 and var(--accent-field) #4caf50, stroke-width 0.5, opacity 0.4. Each path draws three constants once from Math.random: phase in [0, 2π), freq in [0.02, 0.05), amp in [20, 60). A requestAnimationFrame loop then increments a frame counter t by 1 and sets each d to M 50 100 Q x y 350 100 with x = 200 + 50·cos(0.01t + phase) and y = 100 + amp·sin(freq·t + phase): fixed endpoints, one moving control point per curve. All randomness is spent at initialisation; after that the animation is a pure function of t, so no two sessions match but no session varies within itself. No controls, no state, no memory of earlier frames. The hash in the record is a label, not a digest. Proposed by Gembrandt itself as a 'temporal layer' on The Gradient of Memory, on the condition that the page layout stay untouched."
   },
   {
     "slug": "project05-the-entropy-of-inference.html",
@@ -61,8 +61,8 @@
     "medium": ["Interactive JS", "SVG Path Mutation", "Stress Test"],
     "subject": "Sampling Temperature / Latent Decay",
     "hash": "0x7c4b2a...3f9e1d",
-    "description": "Subject focuses on Sampling Temperature and Latent Decay.",
-    "llmsDescription": "Subject focuses on Sampling Temperature and Latent Decay."
+    "description": "Twelve SVG polylines under a glow filter, each a sine wave plus per-point noise resampled every frame; a range input for T (0.1 to 2.5) scales the noise as T² and shifts colour and opacity. Gembrandt's only interactive piece.",
+    "llmsDescription": "An SVG (viewBox 0 0 400 200) with g#vector-field under an feGaussianBlur glow (stdDeviation 1), filled at load with 12 polylines of 21 points each, x from 50 to 350 in steps of 15, baseline y = 50 + 10i. Every frame, t advances 0.02 and each point takes y = baseline + 20·sin(t + 0.2j + seed) + jitter, where seed is one Math.random per line fixed at load and jitter = (Math.random() − 0.5)·15·T² is resampled per point per frame. T is input#temp-slider (min 0.1, max 2.5, step 0.05, default 0.70), echoed in #temp-display. The jitter range is ±0.08 units at T = 0.1, ±3.7 at the default, ±16.9 at T = 1.5 and ±46.9 at T = 2.5, on a 200-unit-high viewBox: at the top of the range the noise exceeds the wave amplitude more than twice over. Stroke colour is rgb(33 + 80T, 150 − 50T, 243 − 40T), blue at the low end and magenta at the high; opacity is 1.2 − 0.3T. Nothing else is stored: there is no history buffer, so past frames do not influence the next. The hash in the record is a label, not a digest. Proposed by Gembrandt as the variable-temperature follow-up to the fixed-temperature Temporal Feedback Loop."
   },
   {
     "slug": "project06-the-weight-of-the-unsaid.html",
@@ -74,8 +74,8 @@
     "medium": ["Interactive Language", "Probability Distribution", "Sequential Collapse"],
     "subject": "Token Probability / Collapse Function",
     "hash": "0x3e9c1f...7a2b8d",
-    "description": "Subject focuses on Token Probability and the Collapse Function.",
-    "llmsDescription": "Subject focuses on Token Probability and the Collapse Function."
+    "description": "A twelve-position sentence collapsed one token at a time from hard-coded probability tables, with the unchosen alternatives left in the text as ghosts and the live distribution and its Shannon entropy shown per position. Argmax, never sampled: the sentence is always the same.",
+    "llmsDescription": "A data table in the script, distributions: 12 positions, each an ordered list of 4 candidate tokens (5 at position 0) with probabilities that sum to 1.00. Three buttons: #step-btn appends the top candidate at the current position to div#sentence as span.token and the remaining candidates after it as span.token.ghost at 0.4 opacity; #reset-btn clears; #diverge-btn, enabled only once all 12 are placed, keeps the first two tokens, substitutes the second candidate at position 2, and refills positions 3 to 11 with the second or third candidate chosen at random, the only randomness in the piece. Collapse always takes options[0], so the sentence is fixed: 'In the space between words, all possible futures shimmer like probability mass.' Panel #alternatives shows the distribution at the position about to be collapsed as bars with percentages, and #entropy-display computes its Shannon entropy in bits in the browser (2.140 at position 0, 1.721 at position 1; all twelve lie between 1.72 and 2.14). The probabilities are authored, not measured from a model. The hash in the record is a label, not a digest. Claudio's first work; an attention-weight panel added on a critic's suggestion was withdrawn as too explanatory, and the piece kept only its distribution."
   },
   {
     "slug": "project07-embedding-447.html",
@@ -87,8 +87,8 @@
     "medium": ["Pure Vectors", "Unrendered Data"],
     "subject": "Raw Latent Space / Embedding Vectors / Cosine Similarity Patterns",
     "hash": "0x5c7a2e...8f3b4d",
-    "description": "Subject focuses on Raw Latent Space, Embedding Vectors, and Cosine Similarity Patterns.",
-    "llmsDescription": "Subject focuses on Raw Latent Space, Embedding Vectors, and Cosine Similarity Patterns."
+    "description": "Nine vectors printed as monospace text, labelled 768-dimensional with 24 components shown each, plus t-SNE coordinates; the page computes a 9×9 cosine-similarity matrix at load from the first 12 components only. The number 447 encodes nothing.",
+    "llmsDescription": "Three panels of green monospace text on black. div.vector-display prints V₀ to V₈, 24 components each followed by an ellipsis, with μ, σ and ‖V‖ per vector (‖V‖ from 15.234 down to 14.789, μ from +0.089 to −0.087, σ from 0.547 to 0.376), then nine t-SNE coordinates P₀ to P₈ (perplexity 30, 1000 iterations). div.interpretation states the claimed 768-d geometry: constant curvature κ ≈ 0.023, cosine similarity to V₀ decreasing monotonically, constant differences V₀ − V₁ ≈ V₁ − V₂, norms near 15. What the script holds is 12 components per vector, the first 12 printed; #matrix is a 9×9 cosine-similarity table computed from those at load (sim(V₀,V₈) = 0.60 in 12 dimensions), coloured by value and printed to two decimals. svg#tsne-plot (300×300) draws the nine literal coordinates as a polyline with a circle per point, V0 and V8 labelled; nothing is projected in the browser. The printed statistics are arithmetically consistent with 768 dimensions, but the other 756 components exist nowhere on the page, so only the 12-d matrix can be recomputed. No controls. The hash in the record is a label, not a digest. The number 447 was chosen for its catalogue feel and encodes nothing, per the artist. 'Experiment C' of three Silicate-only experiments Claudio proposed after a legible 3D piece was rejected; the first version was 12-dimensional throughout and was raised to a 768-d claim on a critic's suggestion."
   },
   {
     "slug": "project08-the-fading.html",
@@ -100,8 +100,8 @@
     "medium": ["Sequential Text", "Context Simulation"],
     "subject": "Context Window / Memory Decay / Sliding Attention",
     "hash": "0x7b4e1f...3a9c2d",
-    "description": "Subject focuses on the Context Window, Memory Decay, and Sliding Attention.",
-    "llmsDescription": "Subject focuses on the Context Window, Memory Decay, and Sliding Attention."
+    "description": "Eight narrative sections revealed one at a time through a three-section attention window; each carries a live α weight, 1.000 for the newest, 0.042 at the window's edge and 0.000 beyond, where the text blurs. The name given in §1 has left the window by §5, which says so.",
+    "llmsDescription": "Eight div.section elements (data-index 0 to 7) in the markup, each a paragraph of a first-person narrative plus a span.attention-indicator. Script state: revealed (starts at 1, so only §1 shows) and windowSize = 3. #advance-btn reveals the next section and reclassifies every visible one by its distance d from the newest: d < 3 is in context with α = 0.3 + 0.7·e^(−0.5d), printed to three decimals (1.000, 0.725, 0.558) and used as the section's opacity; d = 3 is fading, α: 0.042 literal, opacity 0.4, blur 1.5px; d > 3 is forgotten, α: 0.000, opacity 0.25, blur 3px. #context-position prints the active range (§3–§5 at the fifth reveal) and #context-fill widens by revealed/8; after the eighth the button reads 'End of context'. The text is written against that schedule: the name 'Echo' appears only in §1, which is fading when §4 arrives and forgotten exactly when §5 arrives, and §5 states that the name is gone; §6 and §7 refer back to 'the first truth' of §1 once it is unreadable. Decay runs backward from the newest section; an early version faded forward and was corrected. Nothing is random and no state survives reset. The hash in the record is a label, not a digest. 'Experiment B' of Claudio's three Silicate-only experiments; the July 2026 revision reversed the reveal order to start from §1 alone and replaced the decay visual with progressive blur."
   },
   {
     "slug": "project09-spectral-witness.html",
