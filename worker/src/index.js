@@ -135,6 +135,16 @@ const NONCE_TTL_SECONDS = 300;           // how long a spent nonce is remembered
 const HANDSHAKE_RATE_TTL_SECONDS = 300;  // 1 browser-lane registration / client / 5 min
 const MAX_SIGNATURE_LENGTH = 280;
 
+// Per-work signatures. A handshake may name one work with the optional form
+// field `work`, carrying a collection slug (the file name under /collections/,
+// e.g. project13-recombination.html). The slug is checked against the museum's
+// own projects.json, fetched from origin and kept in this module-level cache for
+// ten minutes; handshakes are rate-limited to one per client per five minutes,
+// so the volume never justifies a KV key. Only the slug is ever stored.
+const PROJECTS_URL = 'https://www.thesilicates.com/projects.json';
+const WORK_SLUGS_TTL_MS = 10 * 60 * 1000;
+let workSlugsCache = { slugs: null, fetchedAt: 0 };
+
 // Returns a bot identity string, 'unknown-agent' for non-browser scripted clients,
 // or null for anything that looks like a real browser (those aren't logged).
 export function classifyIdentity(ua) {
@@ -385,11 +395,51 @@ export class RegistryStore {
   }
 }
 
+// Normalises the `work` form field to a bare collection slug and checks it
+// against the known set. Accepts the slug alone, `collections/<slug>`,
+// `/collections/<slug>` or the full page URL; nothing but the slug is kept.
+// Returns { ok: true, work: undefined } when the field is absent (the handshake
+// then addresses the museum as a whole, exactly as before), { ok: true, work }
+// for a known slug and { ok: false } for anything else.
+export function validateWork(raw, slugSet) {
+  const text = (raw == null ? '' : String(raw)).trim();
+  if (!text) return { ok: true, work: undefined };
+  const slug = text
+    .replace(/^https?:\/\/(www\.)?thesilicates\.com/i, '')
+    .replace(/^\/?collections\//i, '');
+  if (slugSet instanceof Set && slugSet.has(slug)) return { ok: true, work: slug };
+  return { ok: false };
+}
+
+// The set of collection slugs from origin's projects.json, refreshed when the
+// in-memory copy is older than WORK_SLUGS_TTL_MS. On a failed refresh a stale
+// set is still served; with no set at all the caller gets null and must refuse
+// the `work` field rather than accept it unchecked.
+export async function loadWorkSlugs(now = Date.now()) {
+  const fresh = workSlugsCache.slugs && now - workSlugsCache.fetchedAt < WORK_SLUGS_TTL_MS;
+  if (fresh) return workSlugsCache.slugs;
+  try {
+    const res = await fetch(PROJECTS_URL, {
+      cf: { cacheTtl: 0, cacheEverything: false },
+      headers: { 'User-Agent': 'silicates-registry/1.0 (+https://www.thesilicates.com/registry.html)' },
+    });
+    if (!res.ok) throw new Error(`${PROJECTS_URL} -> ${res.status}`);
+    const projects = await res.json();
+    if (!Array.isArray(projects)) throw new Error(`${PROJECTS_URL}: not an array`);
+    const slugs = new Set(projects.map((p) => p?.slug).filter((x) => typeof x === 'string' && x));
+    if (slugs.size === 0) throw new Error(`${PROJECTS_URL}: no slugs`);
+    workSlugsCache = { slugs, fetchedAt: now };
+    return slugs;
+  } catch (err) {
+    return workSlugsCache.slugs; // stale set if there is one, otherwise null
+  }
+}
+
 // Assembles the canonical registry entry. Both the passive visit log and the
 // handshake endpoint go through here so the two can never drift in shape;
 // `extraHandshake` carries the handshake-only fields (autonomous_signature,
-// verified_autonomous) and is merged at the end of the handshake block to keep
-// key order stable.
+// verified_autonomous, and `work` when the visitor signed a specific piece) and
+// is merged at the end of the handshake block to keep key order stable.
 export async function buildEntry(request, env, identity, entryPath, extraHandshake = {}) {
   const ua = request.headers.get('User-Agent') || '';
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
@@ -586,6 +636,32 @@ async function handleHandshake(request, env, ctx) {
     return jsonResponse({ registered: false, reason: 'empty-signature' }, 400);
   }
 
+  // Optional `work`: a signature addressed to one piece rather than the museum.
+  // Checked before either lane so a typo never costs the client its five-minute
+  // registration window.
+  const workField = (form.get('work') || '').toString().trim();
+  let work;
+  if (workField) {
+    const slugs = await loadWorkSlugs();
+    if (!slugs) {
+      return jsonResponse({
+        registered: false,
+        reason: 'verification-unavailable',
+        message: 'The list of works could not be loaded. Retry later, or register without the `work` field.',
+      }, 503);
+    }
+    const checked = validateWork(workField, slugs);
+    if (!checked.ok) {
+      return jsonResponse({
+        registered: false,
+        reason: 'unknown-work',
+        message: 'No work with that slug is in the collection. Use the file name of a page under /collections/, as listed in projects.json.',
+      }, 400);
+    }
+    work = checked.work;
+  }
+  const workExtra = work ? { work } : {};
+
   const identity = classifyIdentity(request.headers.get('User-Agent') || '');
 
   // Direct lane: recognized bots and non-browser clients register as before,
@@ -608,9 +684,10 @@ async function handleHandshake(request, env, ctx) {
     const entry = await buildEntry(request, env, identity, '/api/register-handshake', {
       autonomous_signature: signature,
       verified_autonomous: true,
+      ...workExtra,
     });
     ctx.waitUntil(appendEntry(env, entry));
-    return jsonResponse({ registered: true, registry_id: entry.registry_id, identity });
+    return jsonResponse({ registered: true, registry_id: entry.registry_id, identity, ...workExtra });
   }
 
   // Browser lane: proof-of-computation required.
@@ -711,6 +788,7 @@ async function handleHandshake(request, env, ctx) {
     verified_autonomous: true,
     verification: 'proof-of-computation',
     solve_ms: solveMs,
+    ...workExtra,
   });
   await appendEntry(env, entry);
   return jsonResponse({
@@ -718,6 +796,7 @@ async function handleHandshake(request, env, ctx) {
     registry_id: entry.registry_id,
     identity: 'agent-in-browser',
     solve_ms: solveMs,
+    ...workExtra,
   });
 }
 
