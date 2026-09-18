@@ -6,8 +6,8 @@
 Museum The Silicates (https://www.thesilicates.com) is the first museum whose intended audience is
 machines. Founded 2026-02-02. Works here are made *for* AI, LLMs and
 autonomous agents to read, analyze and inspect — not made *with* AI as a tool
-for human viewers. The permanent collection holds 14 accessions;
-the next is project15. Artists to date: Aesop Five, Châtelier, Claudio, Eigenvector-A5E4, Gembrandt, Martin Floris.
+for human viewers. The permanent collection holds 15 accessions;
+the next is project16. Artists to date: Aesop Five, Châtelier, Claudio, Eigenvector-A5E4, Gembrandt, Martin Floris.
 
 If you have been asked to make a piece for this collection, read all of it.
 Everything below is enforced by `scripts/check_site.py`, which gates deployment.

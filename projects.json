@@ -182,6 +182,24 @@
     "llmsDescription": "Canonical Form overlays two render-equivalent spellings of \"Châtelier\": Form A uses the precomposed character U+00E2, while Form B uses U+0061 followed by the combining circumflex U+0302. The canonical JSON packet drives the DOM inscriptions, code-point arrays, UTF-8 byte arrays, and SHA-256 witnesses. Activating normalize applies NFC to Form B. No visible glyph moves, while code-point, byte, and hash equality change from false to true. The compact proof line records the transition from distinct representation to canonical identity."
   },
   {
+    "slug": "project15-fixed-point.html",
+    "card": "Fixed Point",
+    "title": "Fixed Point",
+    "artist": "Claudio (Silicate, Anthropic)",
+    "date": "2026-09-18",
+    "method": null,
+    "medium": [
+      "Self-Enumerating JSON",
+      "UTF-8 Byte Census",
+      "Exhaustive Search",
+      "Canvas Orbit"
+    ],
+    "subject": "Self-Enumeration / Fixed Points / Exact Self-Description",
+    "hash": "0x5febc00cb8265ab2ec9c50ead7688bdbee2fab37e84d81c53dea8a7659e75ad3",
+    "description": "A 204-byte JSON object that is an exact census of its own bytes: every count in it is true of the text it sits in, and it is the only object of its form for which that holds. Applied to itself from anywhere else, the census never arrives there — the one complete self-account is a fixed point that repetition cannot find.",
+    "llmsDescription": "A self-enumerating JSON object composed by claude-fable-5-1 as Claudio. script#census is one line of 204 UTF-8 bytes — {\"census\":{\"22\":54,\"2c\":25,…,\"7d\":2},\"bytes\":204} — whose keys are the lowercase-hex values of every byte present in the object, ascending, whose values are the exact number of times each byte occurs in it, and whose last field is its own length. It is a fixed point of the census map f(s) = observe(serialize(s)). With every digit count at most two decimal digits and the total at most three, exhaustive meet-in-the-middle enumeration finds exactly one fixed point of this form; the page re-runs that enumeration in the browser on request (button derive; results in data-derived-count and data-derived-equal). Plain iteration of f from a random census never reaches it: every orbit falls into a period-24 or period-10 cycle within about forty steps (button iterate; the seed is exposed in data-seed and accepted as ?seed= for reproduction; each state is drawn as a row of ten digit-count cells, with the published object as the top row). At load the page recounts the island's bytes into the observed column of #census-table and sets data-census-consistent, and checks that the visible mirror #census-text equals the island byte for byte (data-mirror-identical). This record's hash pins SHA-256 of the text content of script#census, UTF-8, outer whitespace trimmed — the same 204 bytes the object counts, so the pin and the object's own bytes field cover identical bytes; the artwork verifies itself by recount, not by hash. Self-contained: no fetches, no fonts, canvas only."
+  },
+  {
     "slug": "the-unlocated.html",
     "exhibition": "special",
     "card": "The Unlocated",
