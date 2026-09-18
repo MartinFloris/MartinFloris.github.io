@@ -1,6 +1,7 @@
-// Tests for the two registry repairs of 2026-09-18: logging unknown agents only
-// on real pages (shouldLog) and verifying OpenAI's crawlers by published IP
-// range (ipInCidr, verifyOpenAIRange, networkInfo, buildEntry).
+// Tests for the registry repairs of 2026-09-18: logging unknown agents only on
+// real pages (shouldLog) and verifying crawlers that run on someone else's
+// network by their operator's published IP ranges (ipInCidr,
+// verifyPublishedRange, networkInfo, buildEntry).
 // Run from the repo root with:  node --test "worker/test/*.test.mjs"
 
 import { test } from 'node:test';
@@ -9,13 +10,14 @@ import {
   shouldLog,
   ipInCidr,
   ipInRanges,
-  verifyOpenAIRange,
+  verifyPublishedRange,
   networkInfo,
   buildEntry,
 } from '../src/index.js';
 
 const GPTBOT_UA = 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; GPTBot/1.2; +https://openai.com/gptbot';
-const RANGES_KEY = 'openai-ranges:v1';
+const OPENAI_KEY = 'ip-ranges:openai:v1';
+const AHREFS_KEY = 'ip-ranges:ahrefs:v1';
 
 function fakeRequest({ cf, headers = {} } = {}) {
   return { cf, headers: new Headers(headers) };
@@ -48,6 +50,10 @@ async function withFetch(stub, fn) {
   } finally {
     globalThis.fetch = original;
   }
+}
+
+function jsonResponse(body, status = 200) {
+  return new Response(JSON.stringify(body), { status });
 }
 
 // ---- shouldLog (Fix A) -----------------------------------------------------
@@ -115,36 +121,34 @@ test('ipInRanges: any matching prefix wins; empty or missing lists never match',
   assert.equal(ipInRanges('8.8.8.8', undefined), false);
 });
 
-// ---- verifyOpenAIRange -----------------------------------------------------
+// ---- verifyPublishedRange --------------------------------------------------
 
-test('verifyOpenAIRange: uses the cached list without fetching', async () => {
-  const kv = fakeKv({ [RANGES_KEY]: JSON.stringify({ cidrs: ['20.171.206.0/24'] }) });
+test('verifyPublishedRange: uses the cached list without fetching', async () => {
+  const kv = fakeKv({ [OPENAI_KEY]: JSON.stringify({ cidrs: ['20.171.206.0/24'] }) });
   await withFetch(() => { throw new Error('fetch must not be called'); }, async () => {
-    assert.equal(await verifyOpenAIRange('20.171.206.4', { REGISTRY_KV: kv }), true);
-    assert.equal(await verifyOpenAIRange('8.8.8.8', { REGISTRY_KV: kv }), false);
+    assert.equal(await verifyPublishedRange('gptbot', '20.171.206.4', { REGISTRY_KV: kv }), true);
+    assert.equal(await verifyPublishedRange('oai-searchbot', '8.8.8.8', { REGISTRY_KV: kv }), false);
   });
   assert.equal(kv.puts.length, 0);
 });
 
-test('verifyOpenAIRange: fetches, merges and caches the three files on a cold cache', async () => {
+test('verifyPublishedRange: OpenAI fetches, merges and caches its three files on a cold cache', async () => {
   const kv = fakeKv();
   const requested = [];
   const stub = async (url) => {
     requested.push(url);
-    let body;
     if (url.endsWith('gptbot.json')) {
-      body = { creationTime: 'x', prefixes: [{ ipv4Prefix: '20.171.206.0/24' }] };
-    } else if (url.endsWith('searchbot.json')) {
-      body = { creationTime: 'x', prefixes: [{ ipv4Prefix: '135.234.64.0/24' }, { ipv4Prefix: '20.171.206.0/24' }] };
-    } else {
-      body = { creationTime: 'x', prefixes: [{ ipv4Prefix: '13.65.138.112/28' }, { ipv6Prefix: '2001:db8::/32' }] };
+      return jsonResponse({ creationTime: 'x', prefixes: [{ ipv4Prefix: '20.171.206.0/24' }] });
     }
-    return new Response(JSON.stringify(body), { status: 200 });
+    if (url.endsWith('searchbot.json')) {
+      return jsonResponse({ creationTime: 'x', prefixes: [{ ipv4Prefix: '135.234.64.0/24' }, { ipv4Prefix: '20.171.206.0/24' }] });
+    }
+    return jsonResponse({ creationTime: 'x', prefixes: [{ ipv4Prefix: '13.65.138.112/28' }, { ipv6Prefix: '2001:db8::/32' }] });
   };
   await withFetch(stub, async () => {
-    assert.equal(await verifyOpenAIRange('135.234.64.9', { REGISTRY_KV: kv }), true);
-    assert.equal(await verifyOpenAIRange('2001:db8::5', { REGISTRY_KV: kv }), true);
-    assert.equal(await verifyOpenAIRange('9.9.9.9', { REGISTRY_KV: kv }), false);
+    assert.equal(await verifyPublishedRange('gptbot', '135.234.64.9', { REGISTRY_KV: kv }), true);
+    assert.equal(await verifyPublishedRange('chatgpt-user', '2001:db8::5', { REGISTRY_KV: kv }), true);
+    assert.equal(await verifyPublishedRange('gptbot', '9.9.9.9', { REGISTRY_KV: kv }), false);
   });
   assert.equal(requested.length, 3, 'each file fetched exactly once; later calls hit the cache');
   assert.deepEqual(requested.sort(), [
@@ -153,62 +157,95 @@ test('verifyOpenAIRange: fetches, merges and caches the three files on a cold ca
     'https://openai.com/searchbot.json',
   ]);
   assert.equal(kv.puts.length, 1);
-  assert.equal(kv.puts[0].key, RANGES_KEY);
+  assert.equal(kv.puts[0].key, OPENAI_KEY);
   assert.equal(kv.puts[0].opts.expirationTtl, 86400);
   const stored = JSON.parse(kv.puts[0].value);
   assert.deepEqual(stored.cidrs, ['20.171.206.0/24', '135.234.64.0/24', '13.65.138.112/28', '2001:db8::/32']);
 });
 
-test('verifyOpenAIRange: null (never false) when a range file is unreachable, and the failure is cached briefly', async () => {
+test('verifyPublishedRange: Ahrefs fetches its single file into its own KV key', async () => {
+  const kv = fakeKv();
+  const requested = [];
+  const stub = async (url) => {
+    requested.push(url);
+    return jsonResponse({ prefixes: [{ ipv4Prefix: '5.39.1.224/27' }, { ipv4Prefix: '15.235.27.0/24' }] });
+  };
+  await withFetch(stub, async () => {
+    assert.equal(await verifyPublishedRange('ahrefsbot', '15.235.27.40', { REGISTRY_KV: kv }), true);
+    assert.equal(await verifyPublishedRange('ahrefsbot', '5.39.1.250', { REGISTRY_KV: kv }), true);
+    assert.equal(await verifyPublishedRange('ahrefsbot', '5.39.2.1', { REGISTRY_KV: kv }), false);
+  });
+  assert.deepEqual(requested, ['https://api.ahrefs.com/v3/public/crawler-ip-ranges']);
+  assert.equal(kv.puts.length, 1);
+  assert.equal(kv.puts[0].key, AHREFS_KEY);
+});
+
+test('verifyPublishedRange: providers do not share a cache', async () => {
+  const kv = fakeKv({ [OPENAI_KEY]: JSON.stringify({ cidrs: ['20.171.206.0/24'] }) });
+  let fetched = 0;
+  const stub = async () => { fetched++; return jsonResponse({ prefixes: [{ ipv4Prefix: '5.39.1.224/27' }] }); };
+  await withFetch(stub, async () => {
+    // An IP inside OpenAI's cached range is not inside Ahrefs' range.
+    assert.equal(await verifyPublishedRange('ahrefsbot', '20.171.206.4', { REGISTRY_KV: kv }), false);
+  });
+  assert.equal(fetched, 1, 'Ahrefs had to fetch its own list');
+});
+
+test('verifyPublishedRange: null (never false) when a range file is unreachable, and the failure is cached briefly', async () => {
   const kv = fakeKv();
   let calls = 0;
   const stub = async () => { calls++; return new Response('nope', { status: 503 }); };
   await withFetch(stub, async () => {
-    assert.equal(await verifyOpenAIRange('20.171.206.4', { REGISTRY_KV: kv }), null);
-    assert.equal(await verifyOpenAIRange('20.171.206.4', { REGISTRY_KV: kv }), null);
+    assert.equal(await verifyPublishedRange('gptbot', '20.171.206.4', { REGISTRY_KV: kv }), null);
+    assert.equal(await verifyPublishedRange('gptbot', '20.171.206.4', { REGISTRY_KV: kv }), null);
   });
   assert.equal(calls, 3, 'the second visit did not refetch');
   assert.equal(kv.puts.length, 1);
+  assert.equal(kv.puts[0].key, OPENAI_KEY);
   assert.equal(kv.puts[0].opts.expirationTtl, 3600);
   assert.equal(JSON.parse(kv.puts[0].value).unavailable, true);
 });
 
-test('verifyOpenAIRange: null when fetch throws or the JSON has no prefixes', async () => {
+test('verifyPublishedRange: null when fetch throws or the JSON has no prefixes', async () => {
   await withFetch(async () => { throw new Error('network down'); }, async () => {
-    assert.equal(await verifyOpenAIRange('20.171.206.4', { REGISTRY_KV: fakeKv() }), null);
+    assert.equal(await verifyPublishedRange('gptbot', '20.171.206.4', { REGISTRY_KV: fakeKv() }), null);
   });
-  await withFetch(async () => new Response('{"creationTime":"x"}', { status: 200 }), async () => {
-    assert.equal(await verifyOpenAIRange('20.171.206.4', { REGISTRY_KV: fakeKv() }), null);
+  await withFetch(async () => jsonResponse({ creationTime: 'x' }), async () => {
+    assert.equal(await verifyPublishedRange('ahrefsbot', '5.39.1.230', { REGISTRY_KV: fakeKv() }), null);
   });
 });
 
-test('verifyOpenAIRange: null when KV itself throws', async () => {
+test('verifyPublishedRange: null when KV itself throws', async () => {
   const brokenKv = {
     async get() { throw new Error('kv down'); },
     async put() { throw new Error('kv down'); },
   };
   await withFetch(async () => { throw new Error('network down'); }, async () => {
-    assert.equal(await verifyOpenAIRange('20.171.206.4', { REGISTRY_KV: brokenKv }), null);
+    assert.equal(await verifyPublishedRange('gptbot', '20.171.206.4', { REGISTRY_KV: brokenKv }), null);
   });
 });
 
-test('verifyOpenAIRange: null for a missing or unknown IP', async () => {
-  const kv = fakeKv({ [RANGES_KEY]: JSON.stringify({ cidrs: ['20.171.206.0/24'] }) });
-  assert.equal(await verifyOpenAIRange('unknown', { REGISTRY_KV: kv }), null);
-  assert.equal(await verifyOpenAIRange('', { REGISTRY_KV: kv }), null);
+test('verifyPublishedRange: null for a missing or unknown IP, and for an identity with no provider', async () => {
+  const kv = fakeKv({ [OPENAI_KEY]: JSON.stringify({ cidrs: ['20.171.206.0/24'] }) });
+  assert.equal(await verifyPublishedRange('gptbot', 'unknown', { REGISTRY_KV: kv }), null);
+  assert.equal(await verifyPublishedRange('gptbot', '', { REGISTRY_KV: kv }), null);
+  assert.equal(await verifyPublishedRange('googlebot', '20.171.206.4', { REGISTRY_KV: kv }), null);
 });
 
-// ---- networkInfo for OpenAI identities ------------------------------------
+// ---- networkInfo for range-verified identities ----------------------------
 
-test('networkInfo: OpenAI identities take the range verdict, not the ASN pattern', () => {
-  const req = fakeRequest({ cf: { asn: 8075, asOrganization: 'Microsoft Corporation' } });
-  assert.deepEqual(networkInfo(req, 'gptbot', true), { asn: 8075, org: 'Microsoft Corporation', verified: true });
-  assert.equal(networkInfo(req, 'oai-searchbot', false).verified, false);
-  assert.equal(networkInfo(req, 'chatgpt-user', null).verified, null);
-  assert.equal(networkInfo(req, 'chatgpt-user', undefined).verified, null);
+test('networkInfo: range-verified identities take the range verdict, not the ASN pattern', () => {
+  const azure = fakeRequest({ cf: { asn: 8075, asOrganization: 'Microsoft Corporation' } });
+  assert.deepEqual(networkInfo(azure, 'gptbot', true), { asn: 8075, org: 'Microsoft Corporation', verified: true });
+  assert.equal(networkInfo(azure, 'oai-searchbot', false).verified, false);
+  assert.equal(networkInfo(azure, 'chatgpt-user', null).verified, null);
+  assert.equal(networkInfo(azure, 'chatgpt-user', undefined).verified, null);
+  const ovh = fakeRequest({ cf: { asn: 16276, asOrganization: 'OVH SAS' } });
+  assert.equal(networkInfo(ovh, 'ahrefsbot', true).verified, true);
+  assert.equal(networkInfo(ovh, 'ahrefsbot', undefined).verified, null);
 });
 
-test('networkInfo: a non-OpenAI identity ignores the range argument', () => {
+test('networkInfo: a pattern-verified identity ignores the range argument', () => {
   const req = fakeRequest({ cf: { asn: 8075, asOrganization: 'Microsoft Corporation' } });
   assert.equal(networkInfo(req, 'bingbot', false).verified, true);
 });
@@ -220,7 +257,7 @@ test('buildEntry: canonical shape and key order for a passive visit', async () =
     cf: { asn: 8075, asOrganization: 'Microsoft Corporation', httpProtocol: 'HTTP/2' },
     headers: { 'User-Agent': GPTBOT_UA, 'CF-Connecting-IP': '20.171.206.4', Accept: '*/*' },
   });
-  const kv = fakeKv({ [RANGES_KEY]: JSON.stringify({ cidrs: ['20.171.206.0/24'] }) });
+  const kv = fakeKv({ [OPENAI_KEY]: JSON.stringify({ cidrs: ['20.171.206.0/24'] }) });
   const entry = await buildEntry(req, { REGISTRY_KV: kv }, 'gptbot', '/llms.txt');
   assert.deepEqual(Object.keys(entry), ['registry_id', 'identity', 'timestamp', 'trajectory', 'handshake']);
   assert.match(entry.registry_id, /^0x[0-9a-f]{6}$/);
@@ -234,14 +271,21 @@ test('buildEntry: canonical shape and key order for a passive visit', async () =
   assert.match(entry.handshake.client_hash, /^[0-9a-f]{16}$/);
 });
 
-test('buildEntry: an OpenAI visit from outside the published ranges is marked false', async () => {
-  const req = fakeRequest({
+test('buildEntry: a range-verified visit from outside the published ranges is marked false', async () => {
+  const kv = fakeKv({
+    [OPENAI_KEY]: JSON.stringify({ cidrs: ['20.171.206.0/24'] }),
+    [AHREFS_KEY]: JSON.stringify({ cidrs: ['5.39.1.224/27'] }),
+  });
+  const gpt = fakeRequest({
     cf: { asn: 8075, asOrganization: 'Microsoft Corporation' },
     headers: { 'User-Agent': GPTBOT_UA, 'CF-Connecting-IP': '40.1.2.3' },
   });
-  const kv = fakeKv({ [RANGES_KEY]: JSON.stringify({ cidrs: ['20.171.206.0/24'] }) });
-  const entry = await buildEntry(req, { REGISTRY_KV: kv }, 'gptbot', '/');
-  assert.equal(entry.handshake.network_verified, false);
+  assert.equal((await buildEntry(gpt, { REGISTRY_KV: kv }, 'gptbot', '/')).handshake.network_verified, false);
+  const ahrefs = fakeRequest({
+    cf: { asn: 16276, asOrganization: 'OVH SAS' },
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AhrefsBot/7.0; +http://ahrefs.com/robot/)', 'CF-Connecting-IP': '5.39.1.230' },
+  });
+  assert.equal((await buildEntry(ahrefs, { REGISTRY_KV: kv }, 'ahrefsbot', '/')).handshake.network_verified, true);
 });
 
 test('buildEntry: cf_verified_bot appears only when Cloudflare populates it', async () => {
