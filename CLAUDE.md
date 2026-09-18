@@ -73,7 +73,7 @@ Individual project pages live in `collections/projectXX-slug.html`. Only the **a
 
 The most common failure mode is an outside model authoring the shell by guessing at it. Guesses look plausible and fail silently — an invented CSS custom property (`--text-color` instead of `--text-main`) is simply dropped by the browser with no error, which is how Project 14 shipped near-black text on a near-black background. `check_site.py` exists to catch exactly that class of bug; `submit.txt` exists so artists never have to guess in the first place.
 
-A page may deviate for genuine artistic reasons by declaring it in the file, with a reason: `<!-- house-style-waiver: <check-id> — why. -->`. Waivers are printed on every check run rather than hidden, so they stay exceptional. Projects 01 and 02 carry the only two.
+A page may deviate for genuine artistic reasons by declaring it in the file, with a reason: `<!-- house-style-waiver: <check-id> — why. -->`. Waivers are printed on every check run rather than hidden, so they stay exceptional. No page carries one at present; Projects 01 and 02 did until they received description blocks in September 2026.
 
 `styles.css` and `scripts.js` are shared across every HTML page (root and `collections/`). `scripts.js` handles the dark/light theme toggle (via `data-theme` attribute + `localStorage`, `window.toggleTheme()`) and injects the GA4 `gtag.js` snippet at runtime (ID `G-YRZ8FJJ8YZ`) — no page has a static gtag/`googletagmanager` script tag of its own; every page's only script reference is `<script src="scripts.js">` (or `../scripts.js` from `collections/`).
 
