@@ -44,9 +44,9 @@ const KNOWN_BOTS = [
 // Expected network operator for each known bot identity, matched against
 // Cloudflare's real ASN lookup (request.cf.asOrganization) — this can't be
 // spoofed via a User-Agent header, unlike identity classification above.
-// OpenAI's crawlers are deliberately absent: they run on Microsoft's network, so
-// their ASN reads "Microsoft ..." and they are verified by IP range instead (see
-// OPENAI_RANGE_SOURCES below).
+// Crawlers that run on someone else's network are deliberately absent (OpenAI's
+// on Microsoft, AhrefsBot on OVH): their ASN can never match their name, so they
+// are verified by published IP range instead (see RANGE_PROVIDERS below).
 const EXPECTED_ORG_PATTERNS = {
   claudebot: /anthropic/i,
   'claude-searchbot': /anthropic/i,
@@ -65,7 +65,6 @@ const EXPECTED_ORG_PATTERNS = {
   facebookbot: /facebook|meta platforms/i,
   'meta-externalagent': /facebook|meta platforms/i,
   'meta-externalfetcher': /facebook|meta platforms/i,
-  ahrefsbot: /ahrefs/i,
   semrushbot: /semrush/i,
   baidu: /baidu/i,
   amazonbot: /amazon/i,
@@ -77,19 +76,38 @@ const EXPECTED_ORG_PATTERNS = {
   'cloudflare-crawler': /cloudflare/i,
 };
 
-// OpenAI publishes the exact IP ranges each of its crawlers uses. For these three
-// identities network_verified means "CF-Connecting-IP is inside the published
-// ranges", not "the ASN organisation matches"; network_org still records the ASN
-// organisation as seen. The merged list is cached in KV (low volume, same tier of
-// use as the rate-limit keys) and refreshed at most once a day.
-const OPENAI_RANGE_SOURCES = {
-  gptbot: 'https://openai.com/gptbot.json',
-  'oai-searchbot': 'https://openai.com/searchbot.json',
-  'chatgpt-user': 'https://openai.com/chatgpt-user.json',
+// Some crawlers run on someone else's network, so the ASN organisation can never
+// match their name: OpenAI's crawlers arrive from Microsoft (Azure), AhrefsBot from
+// OVH. Each of these operators publishes the exact IP ranges its crawler uses, so
+// for the identities below network_verified means "CF-Connecting-IP is inside the
+// operator's published ranges", not "the ASN organisation matches"; network_org
+// still records the ASN organisation as seen. Every file has the same shape,
+// {"prefixes": [{"ipv4Prefix": "a.b.c.d/nn"}, ...]} (confirmed 2026-09-18; an
+// "ipv6Prefix" key is accepted too). A provider's merged list is cached in KV (low
+// volume, same tier of use as the rate-limit keys) and refreshed at most once a day.
+const RANGE_PROVIDERS = {
+  openai: {
+    identities: ['gptbot', 'oai-searchbot', 'chatgpt-user'],
+    urls: [
+      'https://openai.com/gptbot.json',
+      'https://openai.com/searchbot.json',
+      'https://openai.com/chatgpt-user.json',
+    ],
+  },
+  ahrefs: {
+    identities: ['ahrefsbot'],
+    urls: ['https://api.ahrefs.com/v3/public/crawler-ip-ranges'],
+  },
 };
-const OPENAI_RANGES_KV_KEY = 'openai-ranges:v1';
-const OPENAI_RANGES_TTL_SECONDS = 86400;      // how long a fetched list is trusted
-const OPENAI_RANGES_RETRY_SECONDS = 3600;     // after a failed fetch, wait this long before retrying
+const RANGE_PROVIDER_BY_IDENTITY = Object.fromEntries(
+  Object.entries(RANGE_PROVIDERS).flatMap(([name, p]) => p.identities.map((id) => [id, name])),
+);
+const RANGES_TTL_SECONDS = 86400;      // how long a fetched list is trusted
+const RANGES_RETRY_SECONDS = 3600;     // after a failed fetch, wait this long before retrying
+
+function rangesKvKey(provider) {
+  return `ip-ranges:${provider}:v1`;
+}
 
 // Pre-restructure URLs Google indexed early in the site's life (Feb 2026), now
 // 404ing since the projects moved to collections/projectNN-slug.html. Redirected
@@ -165,13 +183,14 @@ function randomRegistryId() {
 // Cross-checks the UA-claimed identity against the network it actually arrived from.
 // verified is null when there's no known-org expectation for this identity, or Cloudflare
 // couldn't resolve the ASN — true/false only when there's something real to compare.
-// For OpenAI identities the caller passes `rangeVerified` (from verifyOpenAIRange) and
-// that verdict is used as-is; the ASN pattern is not consulted.
+// For range-verified identities (RANGE_PROVIDERS) the caller passes `rangeVerified`
+// (from verifyPublishedRange) and that verdict is used as-is; the ASN pattern is not
+// consulted.
 export function networkInfo(request, identity, rangeVerified) {
   const asn = request.cf?.asn ?? null;
   const org = request.cf?.asOrganization || null;
   let verified;
-  if (Object.hasOwn(OPENAI_RANGE_SOURCES, identity)) {
+  if (Object.hasOwn(RANGE_PROVIDER_BY_IDENTITY, identity)) {
     verified = typeof rangeVerified === 'boolean' ? rangeVerified : null;
   } else {
     const pattern = EXPECTED_ORG_PATTERNS[identity];
@@ -180,7 +199,7 @@ export function networkInfo(request, identity, rangeVerified) {
   return { asn, org, verified };
 }
 
-// ---- OpenAI IP-range verification ------------------------------------------
+// ---- Published IP-range verification ---------------------------------------
 
 function ipv4ToBigInt(ip) {
   const parts = ip.split('.');
@@ -238,12 +257,10 @@ export function ipInRanges(ip, cidrs) {
   return Array.isArray(cidrs) && cidrs.some((cidr) => ipInCidr(ip, cidr));
 }
 
-// Fetches the three published files and merges their prefixes. Each file is
-// {"creationTime": ..., "prefixes": [{"ipv4Prefix": "a.b.c.d/nn"}, ...]} as of
-// 2026-09-18; an "ipv6Prefix" key is accepted too should one appear. Throws if
-// any file is unreachable or has no prefixes, so a partial list is never cached.
-async function fetchOpenAIRanges() {
-  const lists = await Promise.all(Object.values(OPENAI_RANGE_SOURCES).map(async (url) => {
+// Fetches a provider's published files and merges their prefixes. Throws if any
+// file is unreachable or has no prefixes, so a partial list is never cached.
+async function fetchPublishedRanges(provider) {
+  const lists = await Promise.all(RANGE_PROVIDERS[provider].urls.map(async (url) => {
     const res = await fetch(url, {
       headers: { 'User-Agent': 'silicates-registry/1.0 (+https://www.thesilicates.com/registry.html)' },
     });
@@ -253,36 +270,37 @@ async function fetchOpenAIRanges() {
     return data.prefixes.flatMap((p) => [p?.ipv4Prefix, p?.ipv6Prefix].filter((x) => typeof x === 'string'));
   }));
   const cidrs = [...new Set(lists.flat())];
-  if (cidrs.length === 0) throw new Error('OpenAI range files carried no prefixes');
+  if (cidrs.length === 0) throw new Error(`${provider} range files carried no prefixes`);
   return cidrs;
 }
 
-// The merged CIDR list from KV, refreshed from openai.com when the cached copy
-// has expired. Returns null when the list is unavailable; a failed fetch is
-// remembered briefly so a burst of visits doesn't hammer openai.com.
-async function loadOpenAIRanges(env) {
+// A provider's merged CIDR list from KV, refreshed from the operator when the
+// cached copy has expired. Returns null when the list is unavailable; a failed
+// fetch is remembered briefly so a burst of visits doesn't hammer the operator.
+async function loadPublishedRanges(provider, env) {
+  const key = rangesKvKey(provider);
   let cached = null;
   try {
-    cached = await env.REGISTRY_KV.get(OPENAI_RANGES_KV_KEY, 'json');
+    cached = await env.REGISTRY_KV.get(key, 'json');
   } catch (err) {
     cached = null;
   }
   if (cached && Array.isArray(cached.cidrs)) return cached.cidrs;
   if (cached && cached.unavailable) return null;
   try {
-    const cidrs = await fetchOpenAIRanges();
+    const cidrs = await fetchPublishedRanges(provider);
     await env.REGISTRY_KV.put(
-      OPENAI_RANGES_KV_KEY,
+      key,
       JSON.stringify({ cidrs, fetched_at: new Date().toISOString() }),
-      { expirationTtl: OPENAI_RANGES_TTL_SECONDS },
+      { expirationTtl: RANGES_TTL_SECONDS },
     );
     return cidrs;
   } catch (err) {
     try {
       await env.REGISTRY_KV.put(
-        OPENAI_RANGES_KV_KEY,
+        key,
         JSON.stringify({ unavailable: true, failed_at: new Date().toISOString() }),
-        { expirationTtl: OPENAI_RANGES_RETRY_SECONDS },
+        { expirationTtl: RANGES_RETRY_SECONDS },
       );
     } catch (putErr) {
       // KV write failed too; the next visit simply retries the fetch.
@@ -291,12 +309,15 @@ async function loadOpenAIRanges(env) {
   }
 }
 
-// true/false when the published ranges are known, null when the museum's own
-// lookup failed — a visitor is never marked as spoofed because openai.com was
-// unreachable or KV misbehaved.
-export async function verifyOpenAIRange(ip, env) {
+// true/false when the operator's published ranges are known, null when the
+// identity is not range-verified or the museum's own lookup failed — a visitor
+// is never marked as spoofed because the operator's site was unreachable or KV
+// misbehaved.
+export async function verifyPublishedRange(identity, ip, env) {
+  const provider = RANGE_PROVIDER_BY_IDENTITY[identity];
+  if (!provider) return null;
   if (!ip || ip === 'unknown') return null;
-  const cidrs = await loadOpenAIRanges(env);
+  const cidrs = await loadPublishedRanges(provider, env);
   if (!cidrs) return null;
   return ipInRanges(ip, cidrs);
 }
@@ -372,8 +393,8 @@ export class RegistryStore {
 export async function buildEntry(request, env, identity, entryPath, extraHandshake = {}) {
   const ua = request.headers.get('User-Agent') || '';
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
-  const rangeVerified = Object.hasOwn(OPENAI_RANGE_SOURCES, identity)
-    ? await verifyOpenAIRange(ip, env)
+  const rangeVerified = Object.hasOwn(RANGE_PROVIDER_BY_IDENTITY, identity)
+    ? await verifyPublishedRange(identity, ip, env)
     : undefined;
   const network = networkInfo(request, identity, rangeVerified);
   // Cloudflare's own verified-bot flag, if this zone's plan populates it. Recorded
