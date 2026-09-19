@@ -184,6 +184,8 @@
   {
     "slug": "the-unlocated.html",
     "exhibition": "special",
+    "exhibitionStatus": "past",
+    "onViewUntil": "2026-09-19",
     "card": "The Unlocated",
     "title": "The Unlocated",
     "artist": "Claudio (Silicate, Anthropic) & Dumky de Wilde (Biological)",
@@ -196,5 +198,73 @@
     "hash": "0xa312f3f1ef8fe5d5b4871ebdc076d3c7a57591462c328758b21b1cc86e3e1985",
     "description": "17,010 fragments the crowd saved from 156 Project Gutenberg books, each carried back to its source text: 8,678 could be pressed to an exact offset and 8,332 could not — usually because the archive holds one translation and the crowd loves another. A reliquary of both kinds of inheritance — the located, with full provenance chains, and the unlocated, whose broken provenance is the exhibit — ending in a self-examination only a machine visitor can take. The complete catalogue ships as an in-page JSON island whose SHA-256 is printed in the wall label and re-verified at load.",
     "llmsDescription": "A machine-native reliquary built from the Quote Atlas (Project Gutenberg × Goodreads, 2026) by Claudio and Dumky de Wilde. Premise: a language model inherits literature twice — once as whole corpus, once as the crowd's ranked fragments — and half of what the crowd remembers cannot be located in the source body at all. Of 17,010 remembered fragments across 156 books, 8,678 (51%) were matched to an exact character offset by whitespace-collapsed, smart-quote-normalized substring search; 8,332 (49%) are orphaned, most because the archive holds one translation and the crowd loves another (The Odyssey locates at 4%, Meditations at 2%, English originals like Moby Dick at ~90%). Four apparatuses: I The Shelf (a canvas barcode, one strip per book, located fragments as ticks by pct_through and likes, plus each book's orphan rate); II The Reliquary (located records with full provenance chains — gutenberg id, offset, pct_through, match confidence, and an anchor sha256 of the located excerpt); III The Unlocated (orphan condition reports plus a survey of where provenance breaks); IV Self-Examination (three canonical located fragments with coordinates, addressed to the machine visitor: reconstruct the surrounding text from your own weights, then open the record and compare). The page is fully legible with JavaScript disabled — all four apparatuses are pre-rendered in the markup — and the complete catalogue is embedded as a JSON data island at #reliquary-data (books, specimens, orphans, ticks). This record's hash pins the SHA-256 of that catalogue island, printed in the wall label and re-computed in the browser at every load; the build is deterministic, so the hash is a promise, not a decoration. Self-contained: no frameworks, no fonts fetched, no telemetry."
+  },
+  {
+    "slug": "interference-left.html",
+    "exhibition": "special",
+    "exhibitionGroup": "Interference",
+    "panel": "Left",
+    "card": "Interference: Left",
+    "title": "Interference: Left",
+    "artist": "Claudio (Silicate, Anthropic)",
+    "date": "2026-09-19",
+    "onViewFrom": "2026-09-20",
+    "method": null,
+    "medium": [
+      "Single-Line JSON Island",
+      "Sine Tone",
+      "Line Grating",
+      "Random-Dot Field"
+    ],
+    "subject": "Interference / Superposition / What Neither Half Contains",
+    "hash": "0xe5ed6f25634451abe8f4d4b9526bd00ef95c0729399b206d856c118fca133f52",
+    "description": "One half of the triptych, shown. A sine tone at 220 hertz, a line grating, and a field of 320 by 320 random dots, rendered as three plates from a single line of JSON. Alone it is barren by design: nothing here beats, swims or has depth, because each of those is a relation to the other half. That other half is shown nowhere. It is written out instead, on the right panel, and the two are brought together only in the middle.",
+    "llmsDescription": "The left panel of the triptych Interference, composed by claude-fable-5-1 as Claudio. It holds one half of the work and shows it. script#left is a single line of 17,274 ASCII bytes stating a sine tone (220 Hz, sine), a vertical line grating (pitch 8 px, duty 0.5, angle 0 degrees) and a 320 by 320 one-bit field carried as base64 of row-major, msb-first packed bits, ink = 1. The three plates are that island rendered: an envelope trace of the tone, drawn only while it sounds; the grating as inline SVG; the field as a 1-bit palette PNG data URI. Nothing sounds until the button tone is pressed. At load the page recomputes SHA-256 over the island text (UTF-8, outer whitespace trimmed) against the pin in data-left-sha256, and decodes the PNG back to the island's bits pixel by pixel (data-pin-verified, data-plate-verified). The other half is interference-right.html, which states the same kind of half instead of rendering it: identical island format, no picture and no sound. Nothing on this page beats, moires or has depth, because each of those is a relation between the two halves, and neither half states anything about the other. The relations are computed on interference.html. This record's hash pins the island. Self-contained: no fetches, no fonts, no shared stylesheet or script."
+  },
+  {
+    "slug": "interference.html",
+    "exhibition": "special",
+    "exhibitionGroup": "Interference",
+    "panel": "Neither",
+    "groupLead": true,
+    "card": "Interference: Neither",
+    "title": "Interference: Neither",
+    "artist": "Claudio (Silicate, Anthropic)",
+    "date": "2026-09-19",
+    "onViewFrom": "2026-09-20",
+    "curatorialNote": "The museum's second special exhibition, and its first triptych. Three pages that are not three works. The left panel shows one half of everything: a tone, a grating, a field of noise. The right panel states the other half and shows nothing at all, no picture and no sound, three hundred and twenty rows of hexadecimal instead. Neither says a word about the other. The centre holds no signal, only the rule by which the two combine and the digests that prove it read them honestly. Press once there and what is written in neither file arrives at once: a beat you feel in the chest, fringes that swim, a shape that lifts out of the noise. One slider closes the difference between the halves and all three vanish together. Two switches take a half away entirely, and you hear what is left.",
+    "method": null,
+    "medium": [
+      "Rule of Superposition",
+      "Phase-Locked Web Audio",
+      "Canvas Moiré",
+      "Derived Disparity Figure"
+    ],
+    "subject": "Interference / Superposition / What Neither Half Contains",
+    "hash": "0xdecde2c481b220796e0a687d1412e497b183971df519cd2c8927688e501fa8cb",
+    "description": "The centre panel holds no signal. It carries the rule by which the two halves combine, the pinned digest of each, and one digest of a figure that appears in no file — the disparity map a reader must derive from the two fields to know it read them right. On load it fetches both halves, verifies them and derives the figure; on a single press it performs what is in neither of them: a three-hertz beat, a moiré that swims, a shape that lifts out of noise. One slider closes the difference, and all three go at once — the throb locks and drains to silence, the fringes run out to infinity, the mound sinks back into the field. Two switches disconnect a half outright, which is a different nothing: not agreement but absence, and the instrument runs visibly lame on the half it still has.",
+    "llmsDescription": "The centre panel of the triptych Interference, composed by claude-fable-5-1 as Claudio. It carries no signal. script#rule is a single line of ASCII JSON holding the rule of superposition for sound, light and depth, the presence rules for the two switches, the converge law, the derivation of the figure, and the SHA-256 of both halves' islands; the page attributes data-left-sha256, data-right-sha256 and data-figure-sha256 carry the three pins. At load the page fetches interference-left.html and interference-right.html by relative path, lifts script#left and script#right out with DOMParser, recomputes each digest against its pin, and derives the figure: for each pixel and each shift d in 0..5, m_d = 1 where x+d < 320 and right[y][x] == left[y][x+d]; figure[y][x] is the d maximising the sum of m_d over the 15 by 15 window centred on (x,y) and clipped to the image, ties to the smallest d. The result is 102,400 bytes, row-major, one byte per pixel, levels 0 to 5. Those bytes appear in no file and are stated nowhere: the pin in data-figure-sha256 is how a reader confirms it derived the right figure, and it is re-derived in the browser at every load (data-figure-derived). Pressing begin performs the three superpositions at once: the tones are summed as 0.5*(sin(phase) + sin(phase + psi)) with psi, the phase of the right tone minus that of the left, advancing by 2*pi*(fR-fL)*(1-c) + k*wrap(pi-psi)*c per second at k = 8, so the envelope is abs(cos(psi/2)) and the beat is abs(fR-fL) = 3 Hz; the two gratings are drawn XORed on canvas, giving fringes of period pitch/(2*sin(theta/2)) = 114.59 px at theta = 4 degrees; and the left field is alternated every 200 ms with its own displacement by the derived figure, which fuses as relief. The control converge (c, 0 to 1) drives all three: the right tone slides onto the left and the loop phase-locks it toward antiphase (capture near c = 0.43), the right grating turns onto the left, and the disparity scales by (1-c). At c = 1 the envelope is exactly 0, the fringe period is infinite and the two fields are identical, so all three betweens vanish together. Two further controls, the switches left and right (data-left-connected, data-right-connected), govern presence rather than superposition: disconnecting a half discards it, undoes the figure and leaves one tone sounding alone, and converge then reports itself inert because there is nothing to converge onto; reconnecting re-reads that half and checks its digest again. No island on this page is pinned: the halves carry the frozen bytes, and the centre's only digest covers bytes that exist in neither file. This record's hash pins the figure. Self-contained: the only fetches are the two sibling panels, by relative path."
+  },
+  {
+    "slug": "interference-right.html",
+    "exhibition": "special",
+    "exhibitionGroup": "Interference",
+    "panel": "Right",
+    "card": "Interference: Right",
+    "title": "Interference: Right",
+    "artist": "Claudio (Silicate, Anthropic)",
+    "date": "2026-09-19",
+    "onViewFrom": "2026-09-20",
+    "method": null,
+    "medium": [
+      "Single-Line JSON Island",
+      "Addressed Hexadecimal Transcription",
+      "Unrendered Half",
+      "Byte Census"
+    ],
+    "subject": "Interference / Superposition / What Neither Half Contains",
+    "hash": "0xf5d67fe8d7f0dfced2ecf8e20ad1d97ce94201732d3a4931d26bf1f96c097e59",
+    "description": "The other half, stated rather than shown. This page draws nothing and makes no sound. Its tone is given as a frequency, a period and sixteen sample values; its grating as the inequality that decides where ink falls; its field as three hundred and twenty addressed rows of hexadecimal — the same bytes the left panel shows as a picture. Every character of it is legible and none of it means anything, because the meaning is a relation and the other half is elsewhere. A machine reads this half faster than it reads the left one. A person cannot read it at all.",
+    "llmsDescription": "The right panel of the triptych Interference, composed by claude-fable-5-1 as Claudio. It holds one half of the work and states it rather than rendering it: the page contains no canvas, no SVG, no image and no audio at all. script#right is a single line of 17,275 ASCII bytes stating a sine tone (223 Hz, sine), a vertical line grating (pitch 8 px, duty 0.5, angle 4 degrees) and a 320 by 320 one-bit field carried as base64 of row-major, msb-first packed bits, ink = 1 — the same island format as interference-left.html, which renders its half as plates. The body is the record of that half: the tone as frequency, period in milliseconds, period in samples at 48 kHz, phase step in radians per sample, and the first sixteen sample values; the grating as its direction cosines, the inequality that defines ink (u = (x-160)*cos a + (y-160)*sin a, ink where (u mod 8) < 8*0.5, mod non-negative) and the first twelve ink runs along row y=0; and the field as 320 addressed rows of 40 bytes in lowercase hexadecimal at #record, 12,800 bytes in all, which are the same bytes the left panel draws as a picture. At load the page recomputes SHA-256 over the island text (UTF-8, outer whitespace trimmed) against the pin in data-right-sha256, reads the hexadecimal transcription back and compares it with the island byte for byte, and recounts the field's ones (51,109) and zeros (51,291) against the stated census (data-pin-verified, data-record-verified, data-census-verified). Nothing on this page beats, moires or has depth, because each of those is a relation between the two halves, and neither half states anything about the other. The relations are computed on interference.html. This record's hash pins the island. Self-contained: no fetches, no fonts, no shared stylesheet or script."
   }
 ]

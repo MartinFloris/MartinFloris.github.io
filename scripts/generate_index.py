@@ -60,21 +60,97 @@ empty_slots = '\n'.join(
     for n in (next_slot, next_slot + 1)
 )
 
-# Special Exhibitions — richer, un-numbered guest cards
-def exhibition_card(p):
+# Special Exhibitions — richer, un-numbered guest cards.
+#
+# A work shown across several pages (a triptych, say) is one exhibition, not
+# several, so its records share an "exhibitionGroup" (the group's display
+# title) and each carries a "panel" label; the one flagged "groupLead" supplies
+# the card copy and the title link. Such a group renders as a single card with
+# a row of panel links. A special record without exhibitionGroup renders
+# exactly as it always has — one card, the whole card a link.
+#
+# A closed show keeps its page and its record, and is marked
+# "exhibitionStatus": "past". It is not a card any more: it drops to a quiet
+# "Previously" line under the current show. Nothing about this depends on
+# today's date, so the generated files never go stale on their own.
+def exhibition_meta(p):
     meta = esc(p['artist'])
     if p.get('onViewFrom'):
         meta += f' · On view from {esc(p["onViewFrom"])}'
-    note = f'\n            <p class="exhibition-note">{esc(p["curatorialNote"])}</p>' if p.get('curatorialNote') else ''
+    return meta
+
+
+def exhibition_dates(p):
+    first, last = p.get('onViewFrom'), p.get('onViewUntil')
+    if first and last:
+        return f'{esc(first)} to {esc(last)}'
+    return esc(first or last or '')
+
+
+def exhibition_note(p):
+    return (f'\n            <p class="exhibition-note">{esc(p["curatorialNote"])}</p>'
+            if p.get('curatorialNote') else '')
+
+
+def exhibition_card(p):
     return (
         f'        <a href="collections/{esc(p["slug"])}" class="exhibition-card">\n'
         f'            <div class="exhibition-eyebrow">Special Exhibition</div>\n'
         f'            <div class="exhibition-title">{esc(p["card"])}</div>\n'
-        f'            <div class="exhibition-meta">{meta}</div>{note}\n'
+        f'            <div class="exhibition-meta">{exhibition_meta(p)}</div>{exhibition_note(p)}\n'
         f'        </a>'
     )
 
-exhibition_cards = '\n'.join(exhibition_card(p) for p in special)
+
+def exhibition_group_card(lead, members):
+    panels = ''.join(
+        f'<a href="collections/{esc(m["slug"])}">{esc(m.get("panel") or m["card"])}</a>'
+        for m in members)
+    return (
+        f'        <div class="exhibition-card exhibition-group">\n'
+        f'            <div class="exhibition-eyebrow">Special Exhibition</div>\n'
+        f'            <div class="exhibition-title">'
+        f'<a href="collections/{esc(lead["slug"])}">{esc(lead["exhibitionGroup"])}</a></div>\n'
+        f'            <div class="exhibition-meta">{exhibition_meta(lead)}</div>{exhibition_note(lead)}\n'
+        f'            <div class="exhibition-panels">{panels}</div>\n'
+        f'        </div>'
+    )
+
+
+def exhibition_blocks(records):
+    blocks, seen = [], set()
+    for p in records:
+        group = p.get('exhibitionGroup')
+        if not group:
+            blocks.append(exhibition_card(p))
+        elif group not in seen:
+            seen.add(group)
+            members = [q for q in records if q.get('exhibitionGroup') == group]
+            lead = next((q for q in members if q.get('groupLead')), members[0])
+            blocks.append(exhibition_group_card(lead, members))
+    return blocks
+
+
+def past_exhibitions(records):
+    if not records:
+        return ''
+    rows = '\n'.join(
+        f'            <li><a href="collections/{esc(p["slug"])}">{esc(p["card"])}</a>'
+        f'<span class="exhibition-past-meta">{esc(p["artist"])} · {exhibition_dates(p)}</span></li>'
+        for p in records)
+    return (
+        '\n        <div class="exhibition-past">\n'
+        '            <span class="exhibition-past-label">Previously</span>\n'
+        '            <ul class="exhibition-past-list">\n'
+        f'{rows}\n'
+        '            </ul>\n'
+        '        </div>'
+    )
+
+
+current = [p for p in special if p.get('exhibitionStatus') != 'past']
+closed = [p for p in special if p.get('exhibitionStatus') == 'past']
+exhibition_cards = '\n'.join(exhibition_blocks(current)) + past_exhibitions(closed)
 index_html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -207,7 +283,8 @@ lines = [
 ]
 lines += ['## Special Exhibitions',
           'Guest and collaborative works, shown on their own terms and in their own design language; these may rotate.']
-lines += [f'- [{p["card"]}](https://www.thesilicates.com/collections/{p["slug"]}): {p["llmsDescription"]}' for p in special]
+lines += [f'- [{p["card"]}](https://www.thesilicates.com/collections/{p["slug"]}): {p["llmsDescription"]}' for p in current]
+lines += [f'- [{p["card"]}](https://www.thesilicates.com/collections/{p["slug"]}) — closed {esc(p.get("onViewUntil") or "")}, page kept: {p["llmsDescription"]}' for p in closed]
 lines += ['', '## Permanent Collection']
 lines += [f'- [{p["card"]}](https://www.thesilicates.com/collections/{p["slug"]}): {p["llmsDescription"]}' for p in permanent]
 lines += [
