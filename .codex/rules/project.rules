@@ -1,25 +1,5 @@
 # Mirror the routine command permissions in .claude/settings.json.
-
-prefix_rule(
-    pattern = ["gh", "run"],
-    decision = "allow",
-    justification = "Inspecting GitHub Actions runs is routine for this repository.",
-    match = [
-        "gh run list",
-        "gh run list --workflow=static.yml --limit 5",
-        "gh run view 123456789",
-    ],
-)
-
-prefix_rule(
-    pattern = ["git", "push"],
-    decision = "allow",
-    justification = "Normal pushes are allowed; the repository hook separately blocks force pushes and remote-branch deletion.",
-    match = [
-        "git push",
-        "git push origin main",
-    ],
-)
+# An allow only removes the approval prompt; it never authorizes publishing.
 
 prefix_rule(
     pattern = ["git", "status"],
@@ -63,7 +43,7 @@ prefix_rule(
 prefix_rule(
     pattern = ["git", "branch"],
     decision = "allow",
-    justification = "Listing or inspecting branches is routine and read-only.",
+    justification = "Listing or inspecting branches is routine; the hook blocks forced deletion.",
     match = [
         "git branch",
         "git branch --show-current",
@@ -75,16 +55,48 @@ prefix_rule(
     decision = "allow",
     justification = "Staging files is routine and reversible (git restore --staged undoes it).",
     match = [
-        "git add scripts/check_site.py",
+        "git add .",
+    ],
+)
+
+# `git commit` and `git push` always prompt. A standing permission is not
+# per-change authorization: each commit and push needs the owner to say so for
+# that change.
+prefix_rule(
+    pattern = ["git", "commit"],
+    decision = "prompt",
+    justification = "A commit records an authorization decision the owner makes per change.",
+    match = [
+        "git commit -m \"Fix typo\"",
     ],
 )
 
 prefix_rule(
-    pattern = ["git", "commit"],
-    decision = "allow",
-    justification = "Local commits are routine and reversible; only a push publishes them.",
+    pattern = ["git", "push"],
+    decision = "prompt",
+    justification = "Publishing a branch is outward-facing; the owner authorizes each push. Branch protection also rejects direct pushes to main.",
     match = [
-        "git commit -m \"Fix typo in project description\"",
+        "git push",
+        "git push origin main",
+    ],
+)
+
+prefix_rule(
+    pattern = ["npm", "install"],
+    decision = "allow",
+    justification = "Installing declared dependencies is routine and reversible (node_modules is disposable and gitignored).",
+    match = [
+        "npm install",
+    ],
+)
+
+prefix_rule(
+    pattern = ["npm", "run"],
+    decision = "allow",
+    justification = "Project scripts (build, dev, test, lint) only read source and write to gitignored build output.",
+    match = [
+        "npm run build",
+        "npm run dev",
     ],
 )
 
@@ -94,7 +106,7 @@ prefix_rule(
     justification = "Listing directory contents is routine and read-only.",
     match = [
         "ls",
-        "ls collections",
+        "ls src",
     ],
 )
 
@@ -103,17 +115,88 @@ prefix_rule(
     decision = "allow",
     justification = "Reading a file's contents is routine and read-only.",
     match = [
-        "cat projects.json",
+        "cat package.json",
+    ],
+)
+
+# Only read-only `gh` subcommands are allowed. A whole `gh pr`, `gh run` or
+# `gh issue` prefix would also allow merge, close, comment, rerun, cancel and
+# delete. These mirror the gh allows in .claude/settings.json.
+prefix_rule(
+    pattern = ["gh", "pr", ["view", "list", "diff", "checks", "status"]],
+    decision = "allow",
+    justification = "Inspecting pull requests is routine and read-only.",
+    match = [
+        "gh pr list",
+        "gh pr view 1",
+        "gh pr diff 1",
+        "gh pr checks 1",
+        "gh pr status",
+    ],
+    not_match = [
+        "gh pr merge 1",
+        "gh pr close 1",
+        "gh pr comment 1",
+        "gh pr create",
     ],
 )
 
 prefix_rule(
-    pattern = ["python", "scripts/"],
+    pattern = ["gh", "run", ["list", "view"]],
     decision = "allow",
-    justification = "The repo's own maintenance scripts (check_site.py, generate_index.py, new_project.py, etc.) only read and write project files; none deletes anything.",
+    justification = "Inspecting GitHub Actions runs is routine and read-only.",
+    match = [
+        "gh run list",
+        "gh run view 123456789",
+    ],
+    not_match = [
+        "gh run rerun 123456789",
+        "gh run delete 123456789",
+        "gh run cancel 123456789",
+    ],
+)
+
+prefix_rule(
+    pattern = ["gh", "issue", ["view", "list"]],
+    decision = "allow",
+    justification = "Reading issues is routine and read-only.",
+    match = [
+        "gh issue list",
+        "gh issue view 1",
+    ],
+    not_match = [
+        "gh issue create",
+        "gh issue close 1",
+        "gh issue comment 1",
+    ],
+)
+
+# --- This repo ------------------------------------------------------------
+
+# Prefix rules match whole tokens, so each script is named: the old
+# ["python", "scripts/"] matched none of them and kept this file from loading.
+prefix_rule(
+    pattern = ["python", [
+        "scripts/check_site.py",
+        "scripts/generate_index.py",
+        "scripts/new_project.py",
+        "scripts/update_collection_metadata.py",
+        "scripts/update_collection_chrome.py",
+        "scripts/generate_brief.py",
+    ]],
+    decision = "allow",
+    justification = "The repo's own maintenance scripts only read and write project files; none deletes anything.",
     match = [
         "python scripts/check_site.py",
         "python scripts/check_site.py --list",
         "python scripts/generate_index.py",
+        "python scripts/new_project.py project20-example",
+    ],
+    not_match = [
+        "python other.py",
+        "python -c print(1)",
     ],
 )
+
+# `npx wrangler deploy` is deliberately not listed: it ships the Worker that
+# fronts the live domain, so it falls through to the approval prompt.
