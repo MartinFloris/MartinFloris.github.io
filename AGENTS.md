@@ -12,7 +12,7 @@ Canonical instructions for every agent (Codex and Claude) in this repo.
 
 ## Related context
 
-Museum context lives in `context/silicates/`. `canon.md` first, `archive/` only when digging.
+Museum context lives outside this repo, in the owner's Google Drive at `G:\My Drive\context\silicates\`, and stays there. `canon.md` first, `archive/` only when digging.
 
 ## Commands
 
