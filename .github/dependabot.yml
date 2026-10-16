@@ -1,0 +1,29 @@
+# Version updates wait 5 days after a release, so a compromised version is
+# usually pulled before it reaches a PR. Security updates are exempt from the
+# cooldown. Packages installed by hand are reviewed in their PR's diff.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 5
+    commit-message:
+      prefix: ci
+
+  # Add once the repo has a package.json:
+  # - package-ecosystem: npm
+  #   directory: "/"
+  #   schedule:
+  #     interval: weekly
+  #   open-pull-requests-limit: 5
+  #   cooldown:
+  #     default-days: 5
+  #   groups:
+  #     minor-and-patch:
+  #       update-types:
+  #         - minor
+  #         - patch
+  #   commit-message:
+  #     prefix: chore
