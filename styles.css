@@ -313,6 +313,71 @@ hr {
     color: var(--text-main);
     margin: 0;
 }
+/* A single exhibition shown across several pages: one card, one link per panel. */
+.exhibition-title a {
+    color: inherit;
+    text-decoration: none;
+}
+.exhibition-title a:hover {
+    color: var(--exhibition-accent);
+}
+.exhibition-panels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 16px;
+}
+.exhibition-panels a {
+    font-family: monospace, 'Courier New', monospace;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 7px 16px;
+    border: 1px solid var(--exhibition-accent);
+    border-radius: 4px;
+    color: var(--exhibition-accent);
+    text-decoration: none;
+}
+.exhibition-panels a:hover {
+    background: var(--exhibition-accent);
+    color: var(--background);
+}
+/* Closed shows: kept on the site, but a line rather than a card. */
+.exhibition-past {
+    margin: 18px 2px 0;
+}
+.exhibition-past-label {
+    font-family: monospace, 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-subtle);
+}
+.exhibition-past-list {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+}
+.exhibition-past-list li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    align-items: baseline;
+    padding: 5px 0;
+    font-size: 14px;
+}
+.exhibition-past-list a {
+    color: var(--text-main);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border-color);
+}
+.exhibition-past-list a:hover {
+    border-bottom-color: var(--exhibition-accent);
+}
+.exhibition-past-meta {
+    font-size: 13px;
+    color: var(--text-subtle);
+}
 @media (prefers-reduced-motion: reduce) {
     .exhibition-card { transition: none; }
 }
