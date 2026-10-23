@@ -1,6 +1,6 @@
-// Tests for the registry repairs of 2026-09-18: logging unknown agents only on
-// real pages (shouldLog) and verifying crawlers that run on someone else's
-// network by their operator's published IP ranges (ipInCidr,
+// Tests for the registry repairs of 2026-09-18 and 2026-10-23: logging error answers only for
+// confirmed crawlers (shouldLog) and verifying crawlers that run on someone else's
+// (or a shared cloud) network by their operator's published IP ranges (ipInCidr,
 // verifyPublishedRange, networkInfo, buildEntry).
 // Run from the repo root with:  node --test "worker/test/*.test.mjs"
 
@@ -18,6 +18,8 @@ import {
 const GPTBOT_UA = 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; GPTBot/1.2; +https://openai.com/gptbot';
 const OPENAI_KEY = 'ip-ranges:openai:v1';
 const AHREFS_KEY = 'ip-ranges:ahrefs:v1';
+const GOOGLE_KEY = 'ip-ranges:google:v1';
+const BING_KEY = 'ip-ranges:bing:v1';
 
 function fakeRequest({ cf, headers = {} } = {}) {
   return { cf, headers: new Headers(headers) };
@@ -71,10 +73,21 @@ test('shouldLog: an unknown agent is logged only when the origin answered below 
   assert.equal(shouldLog('unknown-agent', 500), false);
 });
 
-test('shouldLog: a recognised bot is logged whatever the status', () => {
-  assert.equal(shouldLog('gptbot', 200), true);
-  assert.equal(shouldLog('gptbot', 404), true);
-  assert.equal(shouldLog('claudebot', 503), true);
+test('shouldLog: a recognised bot is logged on any success, whatever its network', () => {
+  assert.equal(shouldLog('gptbot', 200, true), true);
+  assert.equal(shouldLog('gptbot', 200, false), true);
+  assert.equal(shouldLog('gptbot', 304, null), true);
+});
+
+test('shouldLog: an error answer is logged only for a bot whose network confirms it', () => {
+  assert.equal(shouldLog('gptbot', 404, true), true);
+  assert.equal(shouldLog('claudebot', 503, true), true);
+  // The 2026-10-22/23 scanner: crawler User-Agents on Google Cloud probing /.env.
+  assert.equal(shouldLog('claudebot', 404, false), false);
+  assert.equal(shouldLog('googlebot', 404, false), false);
+  // No verdict (no expectation, or the operator's list was unreachable) is not a confirmation.
+  assert.equal(shouldLog('timpibot', 404, null), false);
+  assert.equal(shouldLog('gptbot', 404, undefined), false);
 });
 
 // ---- ipInCidr / ipInRanges (Fix B) ----------------------------------------
@@ -229,7 +242,7 @@ test('verifyPublishedRange: null for a missing or unknown IP, and for an identit
   const kv = fakeKv({ [OPENAI_KEY]: JSON.stringify({ cidrs: ['20.171.206.0/24'] }) });
   assert.equal(await verifyPublishedRange('gptbot', 'unknown', { REGISTRY_KV: kv }), null);
   assert.equal(await verifyPublishedRange('gptbot', '', { REGISTRY_KV: kv }), null);
-  assert.equal(await verifyPublishedRange('googlebot', '20.171.206.4', { REGISTRY_KV: kv }), null);
+  assert.equal(await verifyPublishedRange('claudebot', '20.171.206.4', { REGISTRY_KV: kv }), null);
 });
 
 // ---- networkInfo for range-verified identities ----------------------------
@@ -246,8 +259,16 @@ test('networkInfo: range-verified identities take the range verdict, not the ASN
 });
 
 test('networkInfo: a pattern-verified identity ignores the range argument', () => {
-  const req = fakeRequest({ cf: { asn: 8075, asOrganization: 'Microsoft Corporation' } });
-  assert.equal(networkInfo(req, 'bingbot', false).verified, true);
+  const req = fakeRequest({ cf: { asn: 399358, asOrganization: 'Anthropic, PBC' } });
+  assert.equal(networkInfo(req, 'claudebot', false).verified, true);
+});
+
+test('networkInfo: Googlebot and Bingbot no longer pass on the ASN organisation alone', () => {
+  const gcp = fakeRequest({ cf: { asn: 396982, asOrganization: 'Google LLC' } });
+  assert.equal(networkInfo(gcp, 'googlebot').verified, null);
+  assert.equal(networkInfo(gcp, 'googlebot', false).verified, false);
+  const azure = fakeRequest({ cf: { asn: 8075, asOrganization: 'Microsoft Corporation' } });
+  assert.equal(networkInfo(azure, 'bingbot', false).verified, false);
 });
 
 // ---- buildEntry ------------------------------------------------------------
@@ -288,8 +309,30 @@ test('buildEntry: a range-verified visit from outside the published ranges is ma
   assert.equal((await buildEntry(ahrefs, { REGISTRY_KV: kv }, 'ahrefsbot', '/')).handshake.network_verified, true);
 });
 
+test('buildEntry: Googlebot is verified by Google published ranges, not the shared ASN organisation', async () => {
+  const kv = fakeKv({
+    [GOOGLE_KEY]: JSON.stringify({ cidrs: ['66.249.64.0/27', '2001:4860:4801:10::/64'] }),
+    [BING_KEY]: JSON.stringify({ cidrs: ['157.55.39.0/24'] }),
+  });
+  const real = fakeRequest({
+    cf: { asn: 15169, asOrganization: 'Google LLC' },
+    headers: { 'User-Agent': 'Googlebot/2.1', 'CF-Connecting-IP': '66.249.64.5' },
+  });
+  assert.equal((await buildEntry(real, { REGISTRY_KV: kv }, 'googlebot', '/')).handshake.network_verified, true);
+  const cloud = fakeRequest({
+    cf: { asn: 396982, asOrganization: 'Google LLC' },
+    headers: { 'User-Agent': 'Googlebot/2.1', 'CF-Connecting-IP': '34.10.20.30' },
+  });
+  assert.equal((await buildEntry(cloud, { REGISTRY_KV: kv }, 'googlebot', '/.env')).handshake.network_verified, false);
+  const bing = fakeRequest({
+    cf: { asn: 8075, asOrganization: 'Microsoft Corporation' },
+    headers: { 'User-Agent': 'bingbot/2.0', 'CF-Connecting-IP': '157.55.39.7' },
+  });
+  assert.equal((await buildEntry(bing, { REGISTRY_KV: kv }, 'bingbot', '/')).handshake.network_verified, true);
+});
+
 test('buildEntry: cf_verified_bot appears only when Cloudflare populates it', async () => {
-  const kv = fakeKv();
+  const kv = fakeKv({ [GOOGLE_KEY]: JSON.stringify({ cidrs: ['66.249.64.0/19'] }) });
   const withFlag = fakeRequest({
     cf: { asn: 15169, asOrganization: 'Google LLC', botManagement: { verifiedBot: true } },
     headers: { 'User-Agent': 'Googlebot/2.1', 'CF-Connecting-IP': '66.249.66.1' },

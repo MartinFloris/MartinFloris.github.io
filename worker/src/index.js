@@ -46,14 +46,13 @@ const KNOWN_BOTS = [
 // spoofed via a User-Agent header, unlike identity classification above.
 // Crawlers that run on someone else's network are deliberately absent (OpenAI's
 // on Microsoft, AhrefsBot on OVH): their ASN can never match their name, so they
-// are verified by published IP range instead (see RANGE_PROVIDERS below).
+// are verified by published IP range instead (see RANGE_PROVIDERS below). So are
+// Google's and Bing's: their operators rent out the same ASN organisation to
+// every cloud customer, so "Google LLC" alone proves nothing.
 const EXPECTED_ORG_PATTERNS = {
   claudebot: /anthropic/i,
   'claude-searchbot': /anthropic/i,
   'claude-user': /anthropic/i,
-  googlebot: /google/i,
-  'google-cloudvertexbot': /google/i,
-  bingbot: /microsoft/i,
   perplexitybot: /perplexity/i,
   'perplexity-user': /perplexity/i,
   ccbot: /common ?crawl/i,
@@ -78,8 +77,10 @@ const EXPECTED_ORG_PATTERNS = {
 
 // Some crawlers run on someone else's network, so the ASN organisation can never
 // match their name: OpenAI's crawlers arrive from Microsoft (Azure), AhrefsBot from
-// OVH. Each of these operators publishes the exact IP ranges its crawler uses, so
-// for the identities below network_verified means "CF-Connecting-IP is inside the
+// OVH. Others share their ASN organisation with a public cloud: on 2026-10-22/23 a
+// scanner on Google Cloud (AS396982, "Google LLC") posed as Googlebot and passed
+// the ASN check. Each of these operators publishes the exact IP ranges its
+// crawler uses, so for the identities below network_verified means "CF-Connecting-IP is inside the
 // operator's published ranges", not "the ASN organisation matches"; network_org
 // still records the ASN organisation as seen. Every file has the same shape,
 // {"prefixes": [{"ipv4Prefix": "a.b.c.d/nn"}, ...]} (confirmed 2026-09-18; an
@@ -97,6 +98,17 @@ const RANGE_PROVIDERS = {
   ahrefs: {
     identities: ['ahrefsbot'],
     urls: ['https://api.ahrefs.com/v3/public/crawler-ip-ranges'],
+  },
+  google: {
+    identities: ['googlebot', 'google-cloudvertexbot'],
+    urls: [
+      'https://developers.google.com/static/search/apis/ipranges/googlebot.json',
+      'https://developers.google.com/static/search/apis/ipranges/special-crawlers.json',
+    ],
+  },
+  bing: {
+    identities: ['bingbot'],
+    urls: ['https://www.bing.com/toolbox/bingbot.json'],
   },
 };
 const RANGE_PROVIDER_BY_IDENTITY = Object.fromEntries(
@@ -157,15 +169,17 @@ export function classifyIdentity(ua) {
 }
 
 // Whether a passive visit belongs in the registry, decided after the origin has
-// answered. Recognised bots are logged whatever the status (a crawler following a
-// dead link is still a visit). An unknown agent is logged only when it reached
-// something that exists: vulnerability scanners probing /.env, /actuator and the
-// like get a 404 from the origin and never enter the log. The origin's own answer
-// is the honest signal, so there is no path blocklist to maintain.
-export function shouldLog(identity, status) {
+// answered and the claimed identity has been checked against the network. Any
+// non-browser visitor that reached something that exists is logged. An error
+// answer is logged only for a crawler whose network confirms its claim (a real
+// crawler following a dead link is still a visit): vulnerability scanners probing
+// /.env, /actuator and the like get a 404 from the origin and never enter the log,
+// even when they wear a crawler's User-Agent. The origin's own answer is the
+// honest signal, so there is no path blocklist to maintain.
+export function shouldLog(identity, status, networkVerified) {
   if (!identity) return false;
-  if (identity !== 'unknown-agent') return true;
-  return status < 400;
+  if (status < 400) return true;
+  return identity !== 'unknown-agent' && networkVerified === true;
 }
 
 function headerWeightBytes(request) {
@@ -472,8 +486,11 @@ export async function buildEntry(request, env, identity, entryPath, extraHandsha
   };
 }
 
-async function logVisit(request, env, identity, url) {
-  await appendEntry(env, await buildEntry(request, env, identity, url.pathname));
+async function logVisit(request, env, identity, url, status) {
+  const entry = await buildEntry(request, env, identity, url.pathname);
+  if (shouldLog(identity, status, entry.handshake.network_verified)) {
+    await appendEntry(env, entry);
+  }
 }
 
 async function handleRegistryGet(request, env, ctx) {
@@ -842,8 +859,9 @@ export default {
 
     // Log only once the origin has answered (see shouldLog). The body is a stream
     // that must reach the visitor untouched, so only the status is read here.
-    if (shouldLog(identity, response.status)) {
-      ctx.waitUntil(logVisit(request, env, identity, url));
+    // An unknown agent's error answer needs no network check to be dropped.
+    if (identity && (response.status < 400 || identity !== 'unknown-agent')) {
+      ctx.waitUntil(logVisit(request, env, identity, url, response.status));
     }
     return response;
   },
