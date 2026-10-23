@@ -50,13 +50,13 @@ test('classifyIdentity: ClaudeBot is recognised', () => {
 // ---- networkInfo -----------------------------------------------------------
 
 test('networkInfo: verified true when the ASN org matches the expected pattern', () => {
-  const req = fakeRequest({ cf: { asn: 396982, asOrganization: 'Google LLC' } });
-  assert.deepEqual(networkInfo(req, 'googlebot'), { asn: 396982, org: 'Google LLC', verified: true });
+  const req = fakeRequest({ cf: { asn: 399358, asOrganization: 'Anthropic, PBC' } });
+  assert.deepEqual(networkInfo(req, 'claudebot'), { asn: 399358, org: 'Anthropic, PBC', verified: true });
 });
 
 test('networkInfo: verified false when the ASN org does not match', () => {
   const req = fakeRequest({ cf: { asn: 16509, asOrganization: 'Amazon.com, Inc.' } });
-  assert.equal(networkInfo(req, 'googlebot').verified, false);
+  assert.equal(networkInfo(req, 'claudebot').verified, false);
 });
 
 test('networkInfo: verified null when there is no expectation for the identity', () => {
@@ -66,11 +66,11 @@ test('networkInfo: verified null when there is no expectation for the identity',
 
 test('networkInfo: verified null when Cloudflare gave no ASN organisation', () => {
   const req = fakeRequest({ cf: {} });
-  assert.deepEqual(networkInfo(req, 'googlebot'), { asn: null, org: null, verified: null });
+  assert.deepEqual(networkInfo(req, 'claudebot'), { asn: null, org: null, verified: null });
 });
 
 test('networkInfo: verified null when request.cf is absent entirely', () => {
-  assert.equal(networkInfo(fakeRequest(), 'googlebot').verified, null);
+  assert.equal(networkInfo(fakeRequest(), 'claudebot').verified, null);
 });
 
 // ---- runPipeline -----------------------------------------------------------
