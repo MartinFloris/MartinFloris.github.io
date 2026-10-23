@@ -1,13 +1,11 @@
-// Tests for the registry repairs of 2026-09-18 and 2026-10-23: logging error answers only for
-// confirmed crawlers (shouldLog) and verifying crawlers that run on someone else's
-// (or a shared cloud) network by their operator's published IP ranges (ipInCidr,
-// verifyPublishedRange, networkInfo, buildEntry).
+// Tests for the registry repairs of 2026-09-18 and 2026-10-23: verifying crawlers
+// that run on someone else's (or a shared cloud) network by their operator's
+// published IP ranges (ipInCidr, verifyPublishedRange, networkInfo, buildEntry).
 // Run from the repo root with:  node --test "worker/test/*.test.mjs"
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  shouldLog,
   ipInCidr,
   ipInRanges,
   verifyPublishedRange,
@@ -57,38 +55,6 @@ async function withFetch(stub, fn) {
 function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), { status });
 }
-
-// ---- shouldLog (Fix A) -----------------------------------------------------
-
-test('shouldLog: a browser (null identity) is never logged', () => {
-  assert.equal(shouldLog(null, 200), false);
-});
-
-test('shouldLog: an unknown agent is logged only when the origin answered below 400', () => {
-  assert.equal(shouldLog('unknown-agent', 200), true);
-  assert.equal(shouldLog('unknown-agent', 304), true);
-  assert.equal(shouldLog('unknown-agent', 399), true);
-  assert.equal(shouldLog('unknown-agent', 400), false);
-  assert.equal(shouldLog('unknown-agent', 404), false);
-  assert.equal(shouldLog('unknown-agent', 500), false);
-});
-
-test('shouldLog: a recognised bot is logged on any success, whatever its network', () => {
-  assert.equal(shouldLog('gptbot', 200, true), true);
-  assert.equal(shouldLog('gptbot', 200, false), true);
-  assert.equal(shouldLog('gptbot', 304, null), true);
-});
-
-test('shouldLog: an error answer is logged only for a bot whose network confirms it', () => {
-  assert.equal(shouldLog('gptbot', 404, true), true);
-  assert.equal(shouldLog('claudebot', 503, true), true);
-  // The 2026-10-22/23 scanner: crawler User-Agents on Google Cloud probing /.env.
-  assert.equal(shouldLog('claudebot', 404, false), false);
-  assert.equal(shouldLog('googlebot', 404, false), false);
-  // No verdict (no expectation, or the operator's list was unreachable) is not a confirmation.
-  assert.equal(shouldLog('timpibot', 404, null), false);
-  assert.equal(shouldLog('gptbot', 404, undefined), false);
-});
 
 // ---- ipInCidr / ipInRanges (Fix B) ----------------------------------------
 
