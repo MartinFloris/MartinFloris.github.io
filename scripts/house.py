@@ -70,6 +70,9 @@ FROZEN_PINS = {
     'project14-canonical-form.html': [
         ('canonical-object', 'data-canonical-sha256'),
     ],
+    'project15-fixed-point.html': [
+        ('census', 'data-census-sha256'),
+    ],
     # Interference: the two halves are frozen; the centre deliberately is not.
     # Its own digest covers the figure, which is derived and written in no file,
     # so it is re-verified in the browser at every load instead of here.

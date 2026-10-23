@@ -3,11 +3,6 @@
 
   "permissions": {
     "allow": [
-      "Bash(gh run *)",
-      "PowerShell(gh run list --workflow=static.yml --limit 5)",
-      "Bash(git push)",
-      "Bash(git push origin main)",
-
       "Bash(git status)",
       "Bash(git status *)",
       "Bash(git diff)",
@@ -18,7 +13,17 @@
       "Bash(git branch)",
       "Bash(git branch *)",
       "Bash(git add *)",
-      "Bash(git commit *)",
+      "Bash(npm install)",
+      "Bash(npm run *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr list*)",
+      "Bash(gh pr diff*)",
+      "Bash(gh pr checks*)",
+      "Bash(gh pr status*)",
+      "Bash(gh run list*)",
+      "Bash(gh run view *)",
+      "Bash(gh issue view *)",
+      "Bash(gh issue list*)",
       "Bash(ls)",
       "Bash(ls *)",
       "Bash(cat *)",
@@ -31,6 +36,18 @@
       "PowerShell(git show *)",
       "PowerShell(git branch)",
       "PowerShell(git branch *)",
+      "PowerShell(git add *)",
+      "PowerShell(npm install)",
+      "PowerShell(npm run *)",
+      "PowerShell(gh pr view *)",
+      "PowerShell(gh pr list*)",
+      "PowerShell(gh pr diff*)",
+      "PowerShell(gh pr checks*)",
+      "PowerShell(gh pr status*)",
+      "PowerShell(gh run list*)",
+      "PowerShell(gh run view *)",
+      "PowerShell(gh issue view *)",
+      "PowerShell(gh issue list*)",
       "PowerShell(ls)",
       "PowerShell(ls *)",
       "PowerShell(cat *)",
@@ -44,7 +61,7 @@
       "Grep"
     ],
     "deny": [
-      "Bash(git push --force *)",
+      "Bash(git push --force*)",
       "Bash(git push -f *)",
       "Bash(git push *--delete*)",
       "Bash(git reset --hard*)",
@@ -53,15 +70,18 @@
       "Bash(rm -rf *)",
       "Bash(rm -r -f *)",
       "Bash(sudo *)",
-      "Bash(docker rm *)",
-      "Bash(docker rmi *)",
-      "Bash(docker system prune*)",
       "PowerShell(git push --force*)",
       "PowerShell(git push -f *)",
+      "PowerShell(git push *--delete*)",
       "PowerShell(git reset --hard*)",
+      "PowerShell(git clean -f*)",
+      "PowerShell(git branch -D *)",
       "PowerShell(Remove-Item * -Recurse -Force*)",
       "PowerShell(Remove-Item * -Force -Recurse*)",
-      "PowerShell(sudo *)"
+      "PowerShell(sudo *)",
+      "Bash(docker rm *)",
+      "Bash(docker rmi *)",
+      "Bash(docker system prune*)"
     ]
   },
 
@@ -73,16 +93,9 @@
           {
             "type": "command",
             "command": "node",
-            "args": [".claude/hooks/block-dangerous-commands.js"],
+            "args": [".claude/hooks/block-dangerous-commands.cjs"],
             "timeout": 10,
             "statusMessage": "Safety check"
-          },
-          {
-            "type": "command",
-            "command": "node",
-            "args": [".claude/hooks/block-young-packages.js"],
-            "timeout": 15,
-            "statusMessage": "Package age check"
           }
         ]
       }

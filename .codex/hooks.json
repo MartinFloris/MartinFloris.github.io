@@ -2,25 +2,17 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "^Bash$",
+        "matcher": "^(Bash|PowerShell|exec_command|functions\\.exec_command)$",
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/block-dangerous-commands.js\"",
-            "commandWindows": "powershell -NoProfile -Command \"$root = git rev-parse --show-toplevel; node (Join-Path $root '.codex/hooks/block-dangerous-commands.js')\"",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/block-dangerous-commands.cjs\"",
+            "commandWindows": "node .codex/hooks/block-dangerous-commands.cjs",
             "timeout": 10,
             "statusMessage": "Safety check"
-          },
-          {
-            "type": "command",
-            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/block-young-packages.js\"",
-            "commandWindows": "powershell -NoProfile -Command \"$root = git rev-parse --show-toplevel; node (Join-Path $root '.codex/hooks/block-young-packages.js')\"",
-            "timeout": 15,
-            "statusMessage": "Package age check"
           }
         ]
       }
     ]
   }
 }
-
