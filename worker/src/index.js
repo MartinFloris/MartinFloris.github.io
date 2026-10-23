@@ -44,35 +44,27 @@ const KNOWN_BOTS = [
 // Expected network operator for each known bot identity, matched against
 // Cloudflare's real ASN lookup (request.cf.asOrganization) — this can't be
 // spoofed via a User-Agent header, unlike identity classification above.
-// Crawlers that run on someone else's network are deliberately absent (OpenAI's
-// on Microsoft, AhrefsBot on OVH): their ASN can never match their name, so they
-// are verified by published IP range instead (see RANGE_PROVIDERS below). So are
-// Google's and Bing's: their operators rent out the same ASN organisation to
-// every cloud customer, so "Google LLC" alone proves nothing.
+// This is the weakest of the three checks, kept only for operators that neither
+// publish their crawler's IP ranges nor rent their network out as a public cloud.
+// Everyone else is verified by published IP range (RANGE_PROVIDERS) or by
+// forward-confirmed reverse DNS (RDNS_SUFFIXES) instead, because an ASN
+// organisation proves nothing when the crawler runs on someone else's cloud
+// (OpenAI, Perplexity and DuckDuckGo on Azure or AWS) or when the operator rents
+// the same organisation to every customer ("Google LLC", "Amazon Technologies",
+// "Huawei-Cloud-SG"). Cloudflare's crawler is absent for that reason too: every
+// Worker on the internet fetches from "Cloudflare, Inc.", so it stays unverified.
 const EXPECTED_ORG_PATTERNS = {
   claudebot: /anthropic/i,
   'claude-searchbot': /anthropic/i,
   'claude-user': /anthropic/i,
-  perplexitybot: /perplexity/i,
-  'perplexity-user': /perplexity/i,
-  ccbot: /common ?crawl/i,
-  applebot: /apple/i,
-  duckduckbot: /duckduckgo/i,
-  duckassistbot: /duckduckgo/i,
-  yandexbot: /yandex/i,
   'facebook-link-preview': /facebook|meta platforms/i,
   facebookbot: /facebook|meta platforms/i,
   'meta-externalagent': /facebook|meta platforms/i,
   'meta-externalfetcher': /facebook|meta platforms/i,
   semrushbot: /semrush/i,
-  baidu: /baidu/i,
-  amazonbot: /amazon/i,
   archiveorgbot: /internet archive/i,
   bytespider: /bytedance/i,
   'tiktok-spider': /bytedance/i,
-  petalbot: /huawei/i,
-  'mistralai-user': /mistral/i,
-  'cloudflare-crawler': /cloudflare/i,
 };
 
 // Some crawlers run on someone else's network, so the ASN organisation can never
@@ -80,11 +72,13 @@ const EXPECTED_ORG_PATTERNS = {
 // OVH. Others share their ASN organisation with a public cloud: on 2026-10-22/23 a
 // scanner on Google Cloud (AS396982, "Google LLC") posed as Googlebot and passed
 // the ASN check. Each of these operators publishes the exact IP ranges its
-// crawler uses, so for the identities below network_verified means "CF-Connecting-IP is inside the
-// operator's published ranges", not "the ASN organisation matches"; network_org
+// crawler uses, so for the identities below network_verified means
+// "CF-Connecting-IP is inside the operator's published ranges", not "the ASN
+// organisation matches"; network_org
 // still records the ASN organisation as seen. Every file has the same shape,
 // {"prefixes": [{"ipv4Prefix": "a.b.c.d/nn"}, ...]} (confirmed 2026-09-18; an
-// "ipv6Prefix" key is accepted too). A provider's merged list is cached in KV (low
+// "ipv6Prefix" key is accepted too; Amazon serves the same JSON inside an HTML
+// page, see parsePrefixDocument). A provider's merged list is cached in KV (low
 // volume, same tier of use as the rate-limit keys) and refreshed at most once a day.
 const RANGE_PROVIDERS = {
   openai: {
@@ -110,6 +104,36 @@ const RANGE_PROVIDERS = {
     identities: ['bingbot'],
     urls: ['https://www.bing.com/toolbox/bingbot.json'],
   },
+  duckduckgo: {
+    identities: ['duckduckbot', 'duckassistbot'],
+    urls: [
+      'https://duckduckgo.com/duckduckbot.json',
+      'https://duckduckgo.com/duckassistbot.json',
+    ],
+  },
+  perplexity: {
+    identities: ['perplexitybot', 'perplexity-user'],
+    urls: [
+      'https://www.perplexity.ai/perplexitybot.json',
+      'https://www.perplexity.ai/perplexity-user.json',
+    ],
+  },
+  commoncrawl: {
+    identities: ['ccbot'],
+    urls: ['https://index.commoncrawl.org/ccbot.json'],
+  },
+  apple: {
+    identities: ['applebot'],
+    urls: ['https://search.developer.apple.com/applebot.json'],
+  },
+  amazon: {
+    identities: ['amazonbot'],
+    urls: ['https://developer.amazon.com/amazonbot/ip-addresses/'],
+  },
+  mistral: {
+    identities: ['mistralai-user'],
+    urls: ['https://mistral.ai/mistralai-user-ips.json'],
+  },
 };
 const RANGE_PROVIDER_BY_IDENTITY = Object.fromEntries(
   Object.entries(RANGE_PROVIDERS).flatMap(([name, p]) => p.identities.map((id) => [id, name])),
@@ -120,6 +144,22 @@ const RANGES_RETRY_SECONDS = 3600;     // after a failed fetch, wait this long b
 function rangesKvKey(provider) {
   return `ip-ranges:${provider}:v1`;
 }
+
+// Operators that publish no IP list but document their crawler's reverse-DNS
+// hostnames. Verification is forward-confirmed reverse DNS, the check the
+// operators themselves describe: the visitor's PTR record must end in one of these
+// suffixes AND that hostname must resolve back to the visitor's address (anyone
+// can set a PTR record on their own IP; only the operator controls the forward
+// zone). Lookups go over DNS-over-HTTPS; verdicts are kept in memory for an hour.
+const RDNS_SUFFIXES = {
+  petalbot: ['.petalsearch.com'],
+  yandexbot: ['.yandex.ru', '.yandex.net', '.yandex.com'],
+  baidu: ['.baidu.com', '.baidu.jp'],
+};
+const DOH_URL = 'https://cloudflare-dns.com/dns-query';
+const RDNS_CACHE_MS = 60 * 60 * 1000;
+const RDNS_CACHE_MAX = 1000;
+const rdnsCache = new Map();
 
 // Pre-restructure URLs Google indexed early in the site's life (Feb 2026), now
 // 404ing since the projects moved to collections/projectNN-slug.html. Redirected
@@ -168,18 +208,79 @@ export function classifyIdentity(ua) {
   return looksLikeBrowser ? null : 'unknown-agent';
 }
 
-// Whether a passive visit belongs in the registry, decided after the origin has
-// answered and the claimed identity has been checked against the network. Any
-// non-browser visitor that reached something that exists is logged. An error
-// answer is logged only for a crawler whose network confirms its claim (a real
-// crawler following a dead link is still a visit): vulnerability scanners probing
-// /.env, /actuator and the like get a 404 from the origin and never enter the log,
-// even when they wear a crawler's User-Agent. The origin's own answer is the
-// honest signal, so there is no path blocklist to maintain.
-export function shouldLog(identity, status, networkVerified) {
-  if (!identity) return false;
-  if (status < 400) return true;
-  return identity !== 'unknown-agent' && networkVerified === true;
+// Bursts. Every non-browser visitor is registered — crawlers, agents and scanners
+// alike, whatever the origin answered — but a run of requests from one address
+// folds into a single row, so one scanner sweep cannot push the rest of the log
+// out. A request joins the address's latest row if that row saw activity within
+// BURST_IDLE_MS; the row then carries a `burst` summary and moves to the top. The
+// address is grouped by a one-way hash that stays inside the Durable Object
+// (`_burst_key`, stripped from every public read); no address is ever published.
+const BURST_IDLE_MS = 15 * 60 * 1000;
+const BURST_SAMPLE_PATHS = 8;
+const BURST_MAX_IDENTITIES = 20;
+
+// A row's network verdict is only as good as its weakest request: false if any
+// claim failed, true only if every claim checked out, otherwise null.
+function combineVerdicts(a, b) {
+  if (a === false || b === false) return false;
+  if (a === true && b === true) return true;
+  return null;
+}
+
+function addCapped(list, value, cap) {
+  if (value == null || list.includes(value) || list.length >= cap) return list;
+  return [...list, value];
+}
+
+// Folds one more passive visit into a row, which keeps its registry_id, first
+// path and network fields; the timestamp becomes the latest request's.
+export function mergeVisit(row, visit) {
+  const prev = row.burst || {
+    count: 1,
+    first_seen: row.timestamp,
+    identities: [row.identity],
+    sample_paths: [row.trajectory?.entry_path].filter((p) => p != null),
+    statuses: row.trajectory?.status != null ? { [row.trajectory.status]: 1 } : {},
+  };
+  const statuses = { ...prev.statuses };
+  const status = visit.trajectory?.status;
+  if (status != null) statuses[status] = (statuses[status] || 0) + 1;
+  return {
+    ...row,
+    timestamp: visit.timestamp,
+    handshake: {
+      ...row.handshake,
+      network_verified: combineVerdicts(row.handshake?.network_verified, visit.handshake?.network_verified),
+    },
+    burst: {
+      count: prev.count + 1,
+      first_seen: prev.first_seen,
+      identities: addCapped(prev.identities, visit.identity, BURST_MAX_IDENTITIES),
+      sample_paths: addCapped(prev.sample_paths, visit.trajectory?.entry_path, BURST_SAMPLE_PATHS),
+      statuses,
+    },
+  };
+}
+
+// The newest row (key and entry) that `burstKey` may join at `now`, or null. `all`
+// is the log in key order, which is the order of each row's latest activity.
+export function findBurstRow(all, burstKey, now) {
+  for (const [key, entry] of [...all].reverse()) {
+    if (now - Date.parse(entry.timestamp) > BURST_IDLE_MS) return null;
+    if (entry._burst_key === burstKey) return { key, entry };
+  }
+  return null;
+}
+
+// Strips the store-private fields (leading underscore) before an entry is served.
+export function publicEntry(entry) {
+  return Object.fromEntries(Object.entries(entry).filter(([k]) => !k.startsWith('_')));
+}
+
+async function burstKeyFor(ip) {
+  const data = new TextEncoder().encode(`burst|${ip}`);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 32);
 }
 
 function headerWeightBytes(request) {
@@ -204,18 +305,24 @@ function randomRegistryId() {
   return '0x' + [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+// Whether an identity is verified by an outside lookup (published range or reverse
+// DNS) rather than by its ASN organisation.
+function hasExternalCheck(identity) {
+  return Object.hasOwn(RANGE_PROVIDER_BY_IDENTITY, identity) || Object.hasOwn(RDNS_SUFFIXES, identity);
+}
+
 // Cross-checks the UA-claimed identity against the network it actually arrived from.
 // verified is null when there's no known-org expectation for this identity, or Cloudflare
 // couldn't resolve the ASN — true/false only when there's something real to compare.
-// For range-verified identities (RANGE_PROVIDERS) the caller passes `rangeVerified`
-// (from verifyPublishedRange) and that verdict is used as-is; the ASN pattern is not
-// consulted.
-export function networkInfo(request, identity, rangeVerified) {
+// For externally verified identities (RANGE_PROVIDERS, RDNS_SUFFIXES) the caller
+// passes `externalVerdict` (from verifyExternally) and that verdict is used as-is;
+// the ASN pattern is not consulted.
+export function networkInfo(request, identity, externalVerdict) {
   const asn = request.cf?.asn ?? null;
   const org = request.cf?.asOrganization || null;
   let verified;
-  if (Object.hasOwn(RANGE_PROVIDER_BY_IDENTITY, identity)) {
-    verified = typeof rangeVerified === 'boolean' ? rangeVerified : null;
+  if (hasExternalCheck(identity)) {
+    verified = typeof externalVerdict === 'boolean' ? externalVerdict : null;
   } else {
     const pattern = EXPECTED_ORG_PATTERNS[identity];
     verified = pattern && org ? pattern.test(org) : null;
@@ -281,6 +388,28 @@ export function ipInRanges(ip, cidrs) {
   return Array.isArray(cidrs) && cidrs.some((cidr) => ipInCidr(ip, cidr));
 }
 
+// The CIDRs in one published range document, or null when it has no prefixes
+// array. Most operators serve the JSON as-is; Amazon serves the same document
+// inside an HTML page's <pre><code> block, so each code block is tried in turn.
+// Only a parsed `prefixes` array is ever read, never loose addresses scraped
+// from the page (which also carries the requester's own IP).
+export function parsePrefixDocument(text) {
+  const candidates = [text];
+  for (const m of String(text).matchAll(/<code[^>]*>([\s\S]*?)<\/code>/gi)) candidates.push(m[1]);
+  for (const candidate of candidates) {
+    let data;
+    try {
+      data = JSON.parse(candidate);
+    } catch (err) {
+      continue;
+    }
+    if (Array.isArray(data?.prefixes)) {
+      return data.prefixes.flatMap((p) => [p?.ipv4Prefix, p?.ipv6Prefix].filter((x) => typeof x === 'string'));
+    }
+  }
+  return null;
+}
+
 // Fetches a provider's published files and merges their prefixes. Throws if any
 // file is unreachable or has no prefixes, so a partial list is never cached.
 async function fetchPublishedRanges(provider) {
@@ -289,9 +418,9 @@ async function fetchPublishedRanges(provider) {
       headers: { 'User-Agent': 'silicates-registry/1.0 (+https://www.thesilicates.com/registry.html)' },
     });
     if (!res.ok) throw new Error(`${url} -> ${res.status}`);
-    const data = await res.json();
-    if (!Array.isArray(data?.prefixes)) throw new Error(`${url}: no prefixes array`);
-    return data.prefixes.flatMap((p) => [p?.ipv4Prefix, p?.ipv6Prefix].filter((x) => typeof x === 'string'));
+    const cidrs = parsePrefixDocument(await res.text());
+    if (!cidrs) throw new Error(`${url}: no prefixes array`);
+    return cidrs;
   }));
   const cidrs = [...new Set(lists.flat())];
   if (cidrs.length === 0) throw new Error(`${provider} range files carried no prefixes`);
@@ -346,6 +475,81 @@ export async function verifyPublishedRange(identity, ip, env) {
   return ipInRanges(ip, cidrs);
 }
 
+// ---- Forward-confirmed reverse DNS -----------------------------------------
+
+// The in-addr.arpa / ip6.arpa name for an address, or null if it doesn't parse.
+export function reverseDnsName(ip) {
+  if (typeof ip !== 'string') return null;
+  if (ip.includes(':')) {
+    const n = ipv6ToBigInt(ip);
+    if (n === null) return null;
+    return [...n.toString(16).padStart(32, '0')].reverse().join('.') + '.ip6.arpa';
+  }
+  if (ipv4ToBigInt(ip) === null) return null;
+  return ip.split('.').map(Number).reverse().join('.') + '.in-addr.arpa';
+}
+
+// Answer data for one DNS query over DoH: [] for a name that doesn't exist or has
+// no records of this type, null when the lookup itself failed.
+async function dohAnswers(name, type) {
+  const typeCodes = { A: 1, PTR: 12, AAAA: 28 };
+  try {
+    const res = await fetch(`${DOH_URL}?name=${encodeURIComponent(name)}&type=${type}`, {
+      headers: { Accept: 'application/dns-json' },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data?.Status === 3) return [];
+    if (data?.Status !== 0) return null;
+    return (data.Answer || [])
+      .filter((a) => a?.type === typeCodes[type] && typeof a.data === 'string')
+      .map((a) => a.data);
+  } catch (err) {
+    return null;
+  }
+}
+
+// true when the visitor's PTR hostname carries one of the operator's suffixes and
+// resolves back to the visitor's address; false when either half fails; null when
+// the identity has no suffixes or a DNS lookup could not be made (a visitor is
+// never marked as spoofed because the museum's own lookup failed).
+export async function verifyReverseDns(identity, ip, now = Date.now()) {
+  const suffixes = RDNS_SUFFIXES[identity];
+  if (!suffixes) return null;
+  const ptrName = reverseDnsName(ip);
+  if (!ptrName) return null;
+  const cacheKey = `${identity}|${ip}`;
+  const cached = rdnsCache.get(cacheKey);
+  if (cached && now - cached.at < RDNS_CACHE_MS) return cached.verdict;
+
+  let verdict = null;
+  const hostnames = await dohAnswers(ptrName, 'PTR');
+  if (hostnames !== null) {
+    const host = hostnames
+      .map((h) => h.toLowerCase().replace(/\.$/, ''))
+      .find((h) => suffixes.some((suffix) => h.endsWith(suffix)));
+    if (!host) {
+      verdict = false;
+    } else {
+      const addresses = await dohAnswers(host, ip.includes(':') ? 'AAAA' : 'A');
+      if (addresses !== null) verdict = addresses.some((a) => ipInCidr(a, ip));
+    }
+  }
+  if (verdict !== null) {
+    if (rdnsCache.size >= RDNS_CACHE_MAX) rdnsCache.clear();
+    rdnsCache.set(cacheKey, { verdict, at: now });
+  }
+  return verdict;
+}
+
+// The outside verdict for an identity: published range or reverse DNS, whichever
+// applies; undefined when the identity is verified by ASN organisation instead.
+export async function verifyExternally(identity, ip, env) {
+  if (Object.hasOwn(RANGE_PROVIDER_BY_IDENTITY, identity)) return verifyPublishedRange(identity, ip, env);
+  if (Object.hasOwn(RDNS_SUFFIXES, identity)) return verifyReverseDns(identity, ip);
+  return undefined;
+}
+
 // Registry entries live in the RegistryStore Durable Object (defined below), not KV directly.
 // A Durable Object's own storage has no KV-style daily write-operation cap, so every visit
 // can write straight through — no batching needed. KV is still used elsewhere in this file
@@ -355,11 +559,12 @@ function registryStoreStub(env) {
   return env.REGISTRY_STORE.get(id);
 }
 
-async function appendEntry(env, entry) {
+// `burstKey` is given for passive visits only; a handshake row never folds.
+async function appendEntry(env, entry, burstKey) {
   try {
     await registryStoreStub(env).fetch('https://registry-store/append', {
       method: 'POST',
-      body: JSON.stringify(entry),
+      body: JSON.stringify({ entry, burst_key: burstKey }),
     });
   } catch (err) {
     // Durable Object write failed — drop this entry rather than break a request already served to the visitor
@@ -372,26 +577,106 @@ async function recentEntries(env, limit) {
   return res.json();
 }
 
+// One-off folds of runs that entered the log one row per request, before bursts
+// existed. Each runs once and is recorded under `fold-done:<id>`. The originals are
+// copied to `folded:<id>:<original key>` (outside the `e:` prefix that /recent
+// reads and the MAX_ENTRIES trim touches) before they leave the log, so a fold can
+// be undone; the folded row takes the key of the run's last request.
+export const FOLDS = [
+  {
+    // A vulnerability scanner on Google Cloud wearing rotating crawler User-Agents,
+    // probing /.env, /.ssh and the like (PR #15). Its three plain unknown-agent
+    // visits (/, /robots.txt) carry no sign of being the same client and stay.
+    id: '2026-10-23-gcp-scanner',
+    asn: 396982,
+    from: '2026-10-22T15:00:00.000Z',
+    to: '2026-10-23T08:45:00.000Z',
+  },
+];
+const STORAGE_BATCH = 128; // Durable Object put/delete accept at most 128 keys per call
+
+export function matchesFold(entry, fold) {
+  return entry?.handshake?.network_asn === fold.asn
+    && entry.identity !== 'unknown-agent'
+    && typeof entry.timestamp === 'string'
+    && entry.timestamp >= fold.from
+    && entry.timestamp <= fold.to;
+}
+
 // Durable Object holding the registry log itself. A single named instance (see
 // registryStoreStub) receives every append/read, so all edge locations agree on one
 // ordered log with no cross-isolate races — unlike raw KV's non-atomic get-then-put.
 export class RegistryStore {
   constructor(state) {
     this.storage = state.storage;
+    this.foldsChecked = false;
+  }
+
+  async putBatched(entries) {
+    for (let i = 0; i < entries.length; i += STORAGE_BATCH) {
+      await this.storage.put(Object.fromEntries(entries.slice(i, i + STORAGE_BATCH)));
+    }
+  }
+
+  async deleteBatched(keys) {
+    for (let i = 0; i < keys.length; i += STORAGE_BATCH) {
+      await this.storage.delete(keys.slice(i, i + STORAGE_BATCH));
+    }
+  }
+
+  // Applies any FOLDS not yet recorded as done. The run is rebuilt from the archive
+  // plus whatever originals are still live, archive copies are written first and the
+  // done-marker last, so an interrupted fold repeats cleanly on the next request.
+  async runFolds() {
+    if (this.foldsChecked) return;
+    for (const fold of FOLDS) {
+      const doneKey = `fold-done:${fold.id}`;
+      if (await this.storage.get(doneKey)) continue;
+      const archivePrefix = `folded:${fold.id}:`;
+      const archived = await this.storage.list({ prefix: archivePrefix });
+      const live = await this.storage.list({ prefix: 'e:' });
+      const originals = new Map();
+      for (const [key, entry] of archived) originals.set(key.slice(archivePrefix.length), entry);
+      for (const [key, entry] of live) {
+        if (entry._fold !== fold.id && matchesFold(entry, fold)) originals.set(key, entry);
+      }
+      const keys = [...originals.keys()].sort();
+      if (keys.length > 0) {
+        await this.putBatched(keys
+          .filter((key) => !archived.has(archivePrefix + key))
+          .map((key) => [archivePrefix + key, originals.get(key)]));
+        const run = keys.map((key) => originals.get(key));
+        const row = run.slice(1).reduce(mergeVisit, run[0]);
+        await this.storage.put(keys[keys.length - 1], { ...row, _fold: fold.id });
+        await this.deleteBatched(keys.slice(0, -1).filter((key) => live.has(key)));
+      }
+      await this.storage.put(doneKey, { folded: keys.length, at: new Date().toISOString() });
+    }
+    this.foldsChecked = true;
   }
 
   async fetch(request) {
+    await this.runFolds();
     const url = new URL(request.url);
 
     if (request.method === 'POST' && url.pathname === '/append') {
-      const entry = await request.json();
-      const key = `e:${Date.now().toString().padStart(14, '0')}:${crypto.randomUUID()}`;
-      await this.storage.put(key, entry);
-
+      const { entry, burst_key: burstKey } = await request.json();
+      const now = Date.now();
+      const key = `e:${now.toString().padStart(14, '0')}:${crypto.randomUUID()}`;
       const all = await this.storage.list({ prefix: 'e:' });
-      const keys = [...all.keys()];
+
+      const target = typeof burstKey === 'string' && burstKey ? findBurstRow(all, burstKey, now) : null;
+      if (target) {
+        // Move the row to the top under a fresh key, so key order stays the order of latest activity.
+        await this.storage.put(key, mergeVisit(target.entry, entry));
+        await this.storage.delete(target.key);
+        return new Response('ok');
+      }
+
+      await this.storage.put(key, burstKey ? { ...entry, _burst_key: burstKey } : entry);
+      const keys = [...all.keys(), key];
       if (keys.length > MAX_ENTRIES) {
-        await this.storage.delete(keys.slice(0, keys.length - MAX_ENTRIES));
+        await this.deleteBatched(keys.slice(0, keys.length - MAX_ENTRIES));
       }
       return new Response('ok');
     }
@@ -399,7 +684,7 @@ export class RegistryStore {
     if (request.method === 'GET' && url.pathname === '/recent') {
       const limit = Number(url.searchParams.get('limit')) || MAX_ENTRIES;
       const all = await this.storage.list({ prefix: 'e:' }); // key prefix sorts chronologically
-      const entries = [...all.values()];
+      const entries = [...all.values()].map(publicEntry);
       return new Response(JSON.stringify(entries.slice(-limit)), {
         headers: { 'Content-Type': 'application/json' },
       });
@@ -457,10 +742,7 @@ export async function loadWorkSlugs(now = Date.now()) {
 export async function buildEntry(request, env, identity, entryPath, extraHandshake = {}) {
   const ua = request.headers.get('User-Agent') || '';
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
-  const rangeVerified = Object.hasOwn(RANGE_PROVIDER_BY_IDENTITY, identity)
-    ? await verifyPublishedRange(identity, ip, env)
-    : undefined;
-  const network = networkInfo(request, identity, rangeVerified);
+  const network = networkInfo(request, identity, await verifyExternally(identity, ip, env));
   // Cloudflare's own verified-bot flag, if this zone's plan populates it. Recorded
   // only when present so the entry shape is unchanged on plans that don't have it;
   // if it shows up in registry.json it is a better primary signal than either check.
@@ -486,11 +768,13 @@ export async function buildEntry(request, env, identity, entryPath, extraHandsha
   };
 }
 
+// A passive visit: the origin's status is recorded, and the visitor's address
+// (hashed) lets a run of requests fold into one row.
 async function logVisit(request, env, identity, url, status) {
   const entry = await buildEntry(request, env, identity, url.pathname);
-  if (shouldLog(identity, status, entry.handshake.network_verified)) {
-    await appendEntry(env, entry);
-  }
+  entry.trajectory.status = status;
+  const ip = request.headers.get('CF-Connecting-IP');
+  await appendEntry(env, entry, ip ? await burstKeyFor(ip) : undefined);
 }
 
 async function handleRegistryGet(request, env, ctx) {
@@ -857,10 +1141,10 @@ export default {
     // performance win from caching static assets at the edge.
     const response = await fetch(request, { cf: { cacheTtl: 0, cacheEverything: false } });
 
-    // Log only once the origin has answered (see shouldLog). The body is a stream
-    // that must reach the visitor untouched, so only the status is read here.
-    // An unknown agent's error answer needs no network check to be dropped.
-    if (identity && (response.status < 400 || identity !== 'unknown-agent')) {
+    // Every non-browser visitor is logged once the origin has answered, so the
+    // entry can record its status (see Bursts). The body is a stream that must
+    // reach the visitor untouched, so only the status is read here.
+    if (identity) {
       ctx.waitUntil(logVisit(request, env, identity, url, response.status));
     }
     return response;

@@ -124,7 +124,7 @@
             </tbody>
         </table>
     </div>
-    <p class="small-caption">Registry holds the most recent 500 entries. Identity is derived from the User-Agent header; no IP addresses are stored, only a one-way hash of IP + User-Agent. Network Origin is the requester's real network operator (unspoofable, unlike the User-Agent) — ✓ means the visit checks out against the claimed identity, ⚠ means it doesn't: crawlers that run on someone else's network (OpenAI's on Microsoft, Ahrefs' on OVH) are checked against the IP ranges their operator publishes; every other identity is checked against its operator's name. Unknown agents are recorded only when they reach a page that exists, so scanners probing for files the museum does not have stay out of the log. Work names the piece a visitor addressed its signature to, when it named one; a dash means the signature was left for the museum as a whole.</p>
+    <p class="small-caption">Registry holds the most recent 500 entries. Identity is derived from the User-Agent header; no IP addresses are stored, only a one-way hash of IP + User-Agent. Network Origin is the requester's real network operator (unspoofable, unlike the User-Agent) — ✓ means the visit checks out against the claimed identity, ⚠ means it doesn't: most crawlers are checked against the IP ranges their operator publishes, a few by reverse DNS, and the rest against their operator's name; no mark means there was nothing to check against. Every automated visitor is recorded — crawlers, agents and scanners alike, whether or not what they asked for exists. A run of requests from the same address with no more than 15 minutes between them is folded into one row showing its request count and every name it used (a run whose names its network does not confirm is shown as an unverified agent, its names kept as claims); that address is grouped by a one-way hash that is never published. Work names the piece a visitor addressed its signature to, when it named one; a dash means the signature was left for the museum as a whole.</p>
 
     <footer>
         <p>Museum The Silicates was created by me, Martin Floris. I’ve received a lot of help in creating this space, from both Silicates and Biologicals. Collaborators include Gemini, ChatGPT, Claude, Notion AI, and others. For inquiries please contact MuseumTheSilicates@gmail.com</p>
@@ -157,10 +157,18 @@
     }
 
     // Stable identity for an entry: the Worker-assigned registry_id, or a composite fallback.
+    // A burst row keeps its registry_id as it grows, so its request count is part of the
+    // key: a poll that finds the count changed redraws that row.
     function entryKey(entry) {
-        if (entry.registry_id) return entry.registry_id;
+        const count = (entry.burst && entry.burst.count) || 1;
+        if (entry.registry_id) return entry.registry_id + '#' + count;
         const handshake = entry.handshake || {};
-        return (entry.timestamp || '') + '|' + (entry.identity || '') + '|' + (handshake.client_hash || '');
+        return (entry.timestamp || '') + '|' + (entry.identity || '') + '|' + (handshake.client_hash || '') + '#' + count;
+    }
+
+    function splitStamp(timestamp) {
+        const [datePart, timePart] = (timestamp || '').split('T');
+        return [(timePart || '').split('.')[0] || 'unknown', datePart || ''];
     }
 
     function renderRow(entry, isNew) {
@@ -178,12 +186,29 @@
             work = '<a href="collections/' + escapeHtml(encodeURIComponent(slug)) + '">'
                 + escapeHtml(workTitles[slug] || slug) + '</a>';
         }
-        const [datePart, timePart] = (entry.timestamp || '').split('T');
-        const timeOfDay = (timePart || '').split('.')[0] || 'unknown';
-        const visitDate = datePart || '';
-        return '<tr' + (isNew ? ' class="registry-row-new"' : '') + '>'
-            + '<td>' + escapeHtml(entry.identity || 'unknown-agent') + '</td>'
-            + '<td>' + escapeHtml(timeOfDay) + '<br><span class="visit-date">' + escapeHtml(visitDate) + ' UTC</span></td>'
+        const [timeOfDay, visitDate] = splitStamp(entry.timestamp);
+        let identity = escapeHtml(entry.identity || 'unknown-agent');
+        let since = '';
+        let details = '';
+        const burst = entry.burst;
+        if (burst && burst.count > 1) {
+            const names = Array.isArray(burst.identities) ? burst.identities : [];
+            const paths = Array.isArray(burst.sample_paths) ? burst.sample_paths : [];
+            // Several names its network doesn't confirm are claims, not identities:
+            // leading with the first of them would credit that crawler with the run.
+            if (names.length > 1 && handshake.network_verified !== true) identity = 'unverified agent';
+            identity += '<br><span class="visit-date">' + escapeHtml(burst.count) + ' requests'
+                + (names.length > 1 ? ' · ' + names.length + ' names' : '') + '</span>';
+            const [firstTime, firstDate] = splitStamp(burst.first_seen);
+            since = '<br><span class="visit-date">since ' + escapeHtml(firstDate === visitDate ? firstTime : firstDate.slice(5) + ' ' + firstTime) + '</span>';
+            const lines = [];
+            if (names.length > 1) lines.push('Names claimed: ' + names.join(', '));
+            if (paths.length) lines.push('Paths include: ' + paths.join(', '));
+            if (lines.length) details = ' title="' + escapeHtml(lines.join('\n')) + '"';
+        }
+        return '<tr' + (isNew ? ' class="registry-row-new"' : '') + ' data-registry-id="' + escapeHtml(entry.registry_id || '') + '">'
+            + '<td' + details + '>' + identity + '</td>'
+            + '<td>' + escapeHtml(timeOfDay) + '<br><span class="visit-date">' + escapeHtml(visitDate) + ' UTC</span>' + since + '</td>'
             + '<td>' + escapeHtml(trajectory.protocol || 'unknown') + '</td>'
             + '<td>' + network + '</td>'
             + '<td>' + signature + '</td>'
@@ -246,6 +271,12 @@
                     hasRealEntries = true;
                 }
                 for (const entry of fresh) {
+                    // A burst that grew is redrawn at the top rather than shown twice.
+                    if (entry.registry_id) {
+                        for (const row of body.querySelectorAll('tr[data-registry-id]')) {
+                            if (row.dataset.registryId === entry.registry_id) row.remove();
+                        }
+                    }
                     body.insertAdjacentHTML('afterbegin', renderRow(entry, true));
                     seen.add(entryKey(entry));
                 }
