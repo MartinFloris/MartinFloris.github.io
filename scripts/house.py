@@ -70,6 +70,9 @@ FROZEN_PINS = {
     'project14-canonical-form.html': [
         ('canonical-object', 'data-canonical-sha256'),
     ],
+    'project15-fixed-point.html': [
+        ('census', 'data-census-sha256'),
+    ],
 }
 
 
