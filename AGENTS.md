@@ -113,7 +113,8 @@ The Worker and the static site deploy on entirely separate paths: pushing to `ma
 
 ## Agent safety
 
-- Hooks in `.claude/hooks/` and `.codex/hooks/` block destructive commands
+- Hooks in `.claude/hooks/`, `.codex/hooks/` and `.agents/hooks/` block
+  destructive commands
   (forced deletes, force push, remote branch deletion, hard reset, forced
   clean, broad checkout discards, forced branch deletion, downloads piped into
   an interpreter). What they enforce is non-negotiable; changing a guard needs
